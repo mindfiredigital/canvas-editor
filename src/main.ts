@@ -33,22 +33,18 @@ window.onload = function () {
   const instance = new Editor(
     container,
     {
-      header: [
-        {
-          value: "First People's Hospital",
-          size: 32,
-          rowFlex: RowFlex.CENTER
-        },
-        {
-          value: '\nPatient medical records',
-          size: 18,
-          rowFlex: RowFlex.CENTER
-        },
-        {
-          value: '\n',
-          type: ElementType.SEPARATOR
-        }
-      ],
+      header: [{
+        value: 'First People\'s Hospital',
+        size: 32,
+        rowFlex: RowFlex.CENTER
+      }, {
+        value: '\nPatient medical records',
+        size: 18,
+        rowFlex: RowFlex.CENTER
+      }, {
+        value: '\n',
+        type: ElementType.SEPARATOR
+      }],
       main: <IElement[]>data,
       footer: [
         {
