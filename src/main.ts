@@ -27,19 +27,19 @@ window.onload = function () {
   const isApple =
     typeof navigator !== 'undefined' && /Mac OS X/.test(navigator.userAgent)
 
-  // 1. 初始化编辑器
+  // 1. Initialize the editor
   const container = document.querySelector<HTMLDivElement>('.editor')!
   const instance = new Editor(
     container,
     {
       header: [
         {
-          value: '第一人民医院',
+          value: "First People's Hospital",
           size: 32,
           rowFlex: RowFlex.CENTER
         },
         {
-          value: '\n门诊病历',
+          value: '\nPatient medical records',
           size: 18,
           rowFlex: RowFlex.CENTER
         },
