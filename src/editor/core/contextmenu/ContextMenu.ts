@@ -44,7 +44,7 @@ export class ContextMenu {
     this.i18n = draw.getI18n()
     this.container = draw.getContainer()
     this.context = null
-    // 内部菜单
+    // internal menu
     this.contextMenuList = [
       ...globalMenus,
       ...tableMenus,
@@ -58,9 +58,9 @@ export class ContextMenu {
   }
 
   private _addEvent() {
-    // 菜单权限
+    // menu permissions
     this.container.addEventListener('contextmenu', this._proxyContextMenuEvent)
-    // 副作用处理
+    // Side Effects
     document.addEventListener('mousedown', this._handleEffect)
   }
 
@@ -101,7 +101,7 @@ export class ContextMenu {
 
   private _handleEffect = (evt: MouseEvent) => {
     if (this.contextMenuContainerList.length) {
-      // 点击非右键菜单内
+      // right-click menu
       const contextMenuDom = findParent(
         evt.target as Element,
         (node: Node & Element) =>
@@ -117,23 +117,19 @@ export class ContextMenu {
   }
 
   private _getContext(): IContextMenuContext {
-    // 是否是只读模式
     const isReadonly = this.draw.isReadonly()
     const {
       isCrossRowCol: crossRowCol,
       startIndex,
       endIndex
     } = this.range.getRange()
-    // 是否存在焦点
     const editorTextFocus = !!(~startIndex || ~endIndex)
-    // 是否存在选区
     const editorHasSelection = editorTextFocus && startIndex !== endIndex
-    // 是否在表格内
+
     const positionContext = this.position.getPositionContext()
     const isInTable = positionContext.isTable
-    // 是否存在跨行/列
     const isCrossRowCol = isInTable && !!crossRowCol
-    // 当前元素
+    // current element
     const elementList = this.draw.getElementList()
     const startElement = elementList[startIndex] || null
     const endElement = elementList[endIndex] || null
@@ -165,9 +161,9 @@ export class ContextMenu {
     const contextMenuContainer = this._createContextMenuContainer()
     const contextMenuContent = document.createElement('div')
     contextMenuContent.classList.add(`${EDITOR_PREFIX}-contextmenu-content`)
-    // 直接子菜单
+    // direct submenu
     let childMenuContainer: HTMLDivElement | null = null
-    // 父菜单添加子菜单映射关系
+    // Parent menu adds submenu mapping relationship
     if (parentMenuContainer) {
       this.contextMenuRelationShip.set(
         parentMenuContainer,
@@ -177,7 +173,7 @@ export class ContextMenu {
     for (let c = 0; c < contextMenuList.length; c++) {
       const menu = contextMenuList[c]
       if (menu.isDivider) {
-        // 首尾分隔符不渲染
+        // The first and last delimiters are not rendered
         if (c !== 0 && c !== contextMenuList.length - 1) {
           const divider = document.createElement('div')
           divider.classList.add(`${EDITOR_PREFIX}-contextmenu-divider`)
@@ -186,7 +182,7 @@ export class ContextMenu {
       } else {
         const menuItem = document.createElement('div')
         menuItem.classList.add(`${EDITOR_PREFIX}-contextmenu-item`)
-        // 菜单事件
+        // menu event
         if (menu.childMenus) {
           menuItem.classList.add(`${EDITOR_PREFIX}-contextmenu-sub-item`)
           menuItem.onmouseenter = () => {
@@ -204,7 +200,7 @@ export class ContextMenu {
             })
           }
           menuItem.onmouseleave = evt => {
-            // 移动到子菜单选项选中状态不变化
+            // Move to the submenu option selected state does not change
             if (
               !childMenuContainer ||
               !childMenuContainer.contains(evt.relatedTarget as Node)
