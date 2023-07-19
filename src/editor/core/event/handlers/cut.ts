@@ -2,6 +2,7 @@ import { writeElementList } from '../../../utils/clipboard'
 import { CanvasEvent } from '../CanvasEvent'
 
 export function cut(host: CanvasEvent) {
+  
   const draw = host.getDraw()
   const rangeManager = draw.getRange()
   const { startIndex, endIndex } = rangeManager.getRange()
@@ -15,7 +16,8 @@ export function cut(host: CanvasEvent) {
   const elementList = draw.getElementList()
   let start = startIndex
   let end = endIndex
-  // 无选区则剪切一行
+  // Cut a line without selection
+  console.log('Cut a line without selection')
   if (startIndex === endIndex) {
     const position = draw.getPosition()
     const positionList = position.getPositionList()
@@ -35,7 +37,7 @@ export function cut(host: CanvasEvent) {
     end = cutElementIndexList[cutElementIndexList.length - 1]
   }
   const options = draw.getOptions()
-  // 写入粘贴板
+  // write to pasteboard
   writeElementList(elementList.slice(start + 1, end + 1), options)
   let curIndex: number
   if (activeControl) {

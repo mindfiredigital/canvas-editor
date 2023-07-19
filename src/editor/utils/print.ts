@@ -3,8 +3,10 @@ export function printImageBase64(
   width: number,
   height: number
 ) {
+  console.log('printImageBase64')
+
   const iframe = document.createElement('iframe')
-  // 离屏渲染
+  // off-screen rendering
   iframe.style.visibility = 'hidden'
   iframe.style.position = 'absolute'
   iframe.style.left = '0'
@@ -31,7 +33,7 @@ export function printImageBase64(
     doc.write(`${style.outerHTML}${container.innerHTML}`)
     contentWindow.print()
     doc.close()
-    // 移除iframe
+    // remove iframe
     window.addEventListener(
       'mouseover',
       () => {

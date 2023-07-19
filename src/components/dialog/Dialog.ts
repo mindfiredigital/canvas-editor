@@ -127,7 +127,7 @@ export class Dialog {
       this.inputList.push(optionInput)
     }
     dialogContainer.append(optionContainer)
-    // 按钮容器
+    // button container
     const menuContainer = document.createElement('div')
     menuContainer.classList.add('dialog-menu')
     // 取消按钮
