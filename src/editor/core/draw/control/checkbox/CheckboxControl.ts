@@ -22,11 +22,13 @@ export class CheckboxControl implements IControlInstance {
   }
 
   public getValue(): IElement[] {
+    console.log('getValue')
+    
     const elementList = this.control.getElementList()
     const { startIndex } = this.control.getRange()
     const startElement = elementList[startIndex]
     const data: IElement[] = []
-    // 向左查找
+    // look left
     let preIndex = startIndex
     while (preIndex > 0) {
       const preElement = elementList[preIndex]
@@ -41,7 +43,7 @@ export class CheckboxControl implements IControlInstance {
       }
       preIndex--
     }
-    // 向右查找
+    // find right
     let nextIndex = startIndex + 1
     while (nextIndex < elementList.length) {
       const nextElement = elementList[nextIndex]
@@ -69,7 +71,7 @@ export class CheckboxControl implements IControlInstance {
     const { startIndex } = this.control.getRange()
     const startElement = elementList[startIndex]
     const data: string[] = []
-    // 向左查找
+    // look left
     let preIndex = startIndex
     while (preIndex > 0) {
       const preElement = elementList[preIndex]
@@ -87,7 +89,7 @@ export class CheckboxControl implements IControlInstance {
       }
       preIndex--
     }
-    // 向右查找
+    // find right
     let nextIndex = startIndex + 1
     while (nextIndex < elementList.length) {
       const nextElement = elementList[nextIndex]
@@ -109,11 +111,13 @@ export class CheckboxControl implements IControlInstance {
   }
 
   public keydown(evt: KeyboardEvent): number {
+    console.log('keydown11')
+    
     const range = this.control.getRange()
-    // 收缩边界到Value内
+    // Shrink bounds to Value
     this.control.shrinkBoundary()
     const { startIndex, endIndex } = range
-    // 删除
+    // delete
     if (evt.key === KeyMap.Backspace || evt.key === KeyMap.Delete) {
       return this.control.removeControl(startIndex)
     }

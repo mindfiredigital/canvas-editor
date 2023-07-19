@@ -2,6 +2,7 @@ import { writeElementList } from '../../../utils/clipboard'
 import { CanvasEvent } from '../CanvasEvent'
 
 export function copy(host: CanvasEvent) {
+  console.log('copy here')
   const draw = host.getDraw()
   const rangeManager = draw.getRange()
   const { startIndex, endIndex } = rangeManager.getRange()

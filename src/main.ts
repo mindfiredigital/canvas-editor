@@ -312,7 +312,7 @@ window.onload = function () {
     instance.command.executeList(listType, listStyle)
   }
 
-  // 4. | 表格 | 图片 | 超链接 | 分割线 | 水印 | 代码块 | 分隔符 | 控件 | 复选框 | LaTeX | 日期选择器
+  // 4. | Table | Image | Hyperlink | Divider | Watermark | Code Block | Separator | Control | Checkbox | LaTeX | Date Picker
   const tableDom = document.querySelector<HTMLDivElement>('.menu-item__table')!
   const tablePanelContainer = document.querySelector<HTMLDivElement>(
     '.menu-item__table__collapse'
@@ -320,7 +320,7 @@ window.onload = function () {
   const tableClose = document.querySelector<HTMLDivElement>('.table-close')!
   const tableTitle = document.querySelector<HTMLDivElement>('.table-select')!
   const tablePanel = document.querySelector<HTMLDivElement>('.table-panel')!
-  // 绘制行列
+  // draw ranks
   const tableCellList: HTMLDivElement[][] = []
   for (let i = 0; i < 10; i++) {
     const tr = document.createElement('tr')
@@ -337,13 +337,13 @@ window.onload = function () {
   }
   let colIndex = 0
   let rowIndex = 0
-  // 移除所有格选择
+  // remove possessive selection
   function removeAllTableCellSelect() {
     tableCellList.forEach(tr => {
       tr.forEach(td => td.classList.remove('active'))
     })
   }
-  // 设置标题内容
+  // Set title content
   function setTableTitle(payload: string) {
     tableTitle.innerText = payload
   }
