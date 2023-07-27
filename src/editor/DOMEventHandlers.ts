@@ -41,6 +41,10 @@ export class DOMEventHandlers {
     DOMEventHandlers.getEditorInstance().command.executeUndo()
   }
 
+  static getContent(){
+    return DOMEventHandlers.getEditorInstance().command.getValue()
+  }
+
   static handleRedo() {
     DOMEventHandlers.getEditorInstance().command.executeRedo()
   }
@@ -112,6 +116,10 @@ export class DOMEventHandlers {
     )
   }
 
+  static setContent(payload: Partial<IEditorData>) {
+    DOMEventHandlers.getEditorInstance().command.executeSetValue(payload)
+  }
+
   static setFontColor(payload: string) {
     DOMEventHandlers.getEditorInstance().command.executeColor(payload)
   }
@@ -134,13 +142,6 @@ export class DOMEventHandlers {
 
   static decreaseFontSize() {
     DOMEventHandlers.getEditorInstance().command.executeSizeMinus()
-  }
-  static getContent() {
-    return DOMEventHandlers.getEditorInstance().command.getValue()
-  }
-
-  static setContent(payload: Partial<IEditorData>) {
-    DOMEventHandlers.getEditorInstance().command.executeSetValue(payload)
   }
 
   static createTable(payload: { rowIndex: number; colIndex: number }) {
