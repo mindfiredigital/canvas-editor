@@ -222,7 +222,10 @@ export class Draw {
     this.intersectionPageNo = 0
     this.lazyRenderIntersectionObserver = null
 
-    this.render({ isSetCursor: false })
+    this.render({
+      isInit: true,
+      isSetCursor: false
+    })
   }
 
   public getMode(): EditorMode {
@@ -1715,7 +1718,8 @@ export class Draw {
       isSubmitHistory = true,
       isSetCursor = true,
       isCompute = true,
-      isLazy = true
+      isLazy = true,
+      isInit = false
     } = payload || {}
     let { curIndex } = payload || {}
     const innerWidth = this.getInnerWidth()
@@ -1830,7 +1834,7 @@ export class Draw {
         this.eventBus.emit('pageSizeChange', this.pageRowList.length)
       }
       // 文档内容改变
-      if (isSubmitHistory) {
+      if (isSubmitHistory && !isInit) {
         if (this.listener.contentChange) {
           this.listener.contentChange()
         }
