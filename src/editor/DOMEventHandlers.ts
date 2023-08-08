@@ -10,6 +10,7 @@ import Editor, {
 } from '.'
 import { Dialog } from '../components/dialog/Dialog'
 import en from '../editor/core/i18n/lang/en.json'
+import { IDrawImagePayload } from './interface/Draw'
 
 export class DOMEventHandlers {
   private static instance: Editor
@@ -39,10 +40,6 @@ export class DOMEventHandlers {
 
   static handleUndo() {
     DOMEventHandlers.getEditorInstance().command.executeUndo()
-  }
-
-  static getContent(){
-    return DOMEventHandlers.getEditorInstance().command.getValue()
   }
 
   static handleRedo() {
@@ -116,10 +113,6 @@ export class DOMEventHandlers {
     )
   }
 
-  static setContent(payload: Partial<IEditorData>) {
-    DOMEventHandlers.getEditorInstance().command.executeSetValue(payload)
-  }
-
   static setFontColor(payload: string) {
     DOMEventHandlers.getEditorInstance().command.executeColor(payload)
   }
@@ -143,6 +136,13 @@ export class DOMEventHandlers {
   static decreaseFontSize() {
     DOMEventHandlers.getEditorInstance().command.executeSizeMinus()
   }
+  static getContent() {
+    return DOMEventHandlers.getEditorInstance().command.getValue()
+  }
+
+  static setContent(payload: Partial<IEditorData>) {
+    DOMEventHandlers.getEditorInstance().command.executeSetValue(payload)
+  }
 
   static createTable(payload: { rowIndex: number; colIndex: number }) {
     DOMEventHandlers.getEditorInstance().command.executeInsertTable(
@@ -157,6 +157,10 @@ export class DOMEventHandlers {
 
   static getContentStyles() {
     return DOMEventHandlers.getEditorInstance().command.getContentStyles()
+  }
+
+  static setImage(payload: IDrawImagePayload) {
+    DOMEventHandlers.getEditorInstance().command.executeImage(payload)
   }
 
   static createHyperLink() {
