@@ -1517,7 +1517,7 @@ export class CommandAdapt {
     if (!hyperRange) return
     const elementList = this.draw.getElementList()
     const [leftIndex, rightIndex] = hyperRange
-    // Replace url
+    // Get hyperlink text
     let hyperlinkText = ''
     for (let i = leftIndex; i <= rightIndex; i++) {
       hyperlinkText += elementList[i].value
@@ -2061,5 +2061,44 @@ export class CommandAdapt {
         isSetCursor: false
       })
     }
+  }
+
+  public globalHyperlink() {
+    const selectedText = this.getRangeText()
+    new Dialog({
+      title: 'Hyperlink',
+      data: [
+        {
+          type: 'text',
+          label: 'Text',
+          name: 'name',
+          required: true,
+          placeholder: 'Enter text',
+          value: selectedText ? selectedText : ''
+        },
+        {
+          type: 'text',
+          label: 'URL',
+          name: 'url',
+          required: true,
+          placeholder: 'Enter URL'
+        }
+      ],
+      onConfirm: payload => {
+        const name = payload.find(p => p.name === 'name')?.value
+        if (!name) return
+        const url = payload.find(p => p.name === 'url')?.value
+        if (!url) return
+        this.hyperlink({
+          type: ElementType.HYPERLINK,
+          value: '',
+          url,
+          valueList: name.split('').map(n => ({
+            value: n,
+            size: 16
+          }))
+        })
+      }
+    })
   }
 }
