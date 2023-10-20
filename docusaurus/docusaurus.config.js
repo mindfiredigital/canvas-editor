@@ -7,7 +7,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Canvas Editor',
-  tagline: 'Experience powerful document creation with our React-based editor. Craft and manage multi-page documents effortlessly',
+  tagline: 'Experience powerful document creation with our html5 canvas based editor. Craft and manage multi-page documents effortlessly',
   favicon: 'img/mindfire.ico',
 
   // Set the production url of your site here
