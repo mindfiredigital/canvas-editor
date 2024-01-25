@@ -11,7 +11,7 @@ export function mousedown(evt: MouseEvent, host: CanvasEvent) {
   const isReadonly = draw.isReadonly()
   const rangeManager = draw.getRange()
   const position = draw.getPosition()
-  // 是否是选区拖拽
+  // Whether it is selection dragging
   if (!host.isAllowDrag) {
     const range = rangeManager.getRange()
     if (!isReadonly && range.startIndex !== range.endIndex) {
@@ -30,7 +30,7 @@ export function mousedown(evt: MouseEvent, host: CanvasEvent) {
   }
   const target = evt.target as HTMLDivElement
   const pageIndex = target.dataset.index
-  // 设置pageNo
+  // set pageNo
   if (pageIndex) {
     draw.setPageNo(Number(pageIndex))
   }

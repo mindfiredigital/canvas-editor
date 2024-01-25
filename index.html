@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -331,7 +331,7 @@
         <span>页面：<span class="page-no">1</span>/<span class="page-size">1</span></span>
         <span>字数：<span class="word-count">0</span></span>
       </div>
-      <div class="editor-mode" title="编辑模式(编辑、清洁、只读、表单)">编辑模式</div>
+      <div class="editor-mode" title="编辑模式(编辑、清洁、只读)">edit mode</div>
       <div>
         <div class="page-scale-minus" title="缩小(Ctrl+-)">
           <i></i>
@@ -378,4 +378,400 @@
   <script type="module" src="/src/main.ts"></script>
 </body>
 
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>canvas-editor</title>
+  </head>
+
+  <body>
+    <div id="app">
+      <div class="menu" editor-component="menu">
+        <div class="menu-item">
+          <div class="menu-item__undo">
+            <i></i>
+          </div>
+          <div class="menu-item__redo">
+            <i></i>
+          </div>
+          <div
+            class="menu-item__painter"
+            title="Format Brush (Double-click to use continuously)"
+          >
+            <i></i>
+          </div>
+          <div class="menu-item__format" title="Clear Formatting">
+            <i></i>
+          </div>
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item">
+          <div class="menu-item__font">
+            <span class="select" title="Font">Arial</span>
+            <div class="options">
+              <ul>
+                <li data-family="Arial" style="font-family: 'Arial'">Arial</li>
+                <li data-family="Segoe UI" style="font-family: 'Segoe UI'">
+                  Segoe UI
+                </li>
+                <li data-family="Ink Free" style="font-family: 'Ink Free'">
+                  Ink Free
+                </li>
+                <li data-family="Fantasy" style="font-family: 'Fantasy'">
+                  Fantasy
+                </li>
+                <li data-family="Calibri" style="font-family: 'Calibri'">
+                  Calibri
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="menu-item__size">
+            <span class="select" title="Font Size">12pt</span>
+            <div class="options">
+              <ul>
+                <li data-size="56">Heading 1</li>
+                <li data-size="48">Heading 2</li>
+                <li data-size="34">Heading 3</li>
+                <li data-size="32">Heading 4</li>
+                <li data-size="29">Heading 5</li>
+                <li data-size="24">Heading 6</li>
+                <li data-size="21">Heading 7</li>
+                <li data-size="20">Heading 8</li>
+                <li data-size="18">Heading 9</li>
+                <li data-size="16">12pt</li>
+                <li data-size="14">10pt</li>
+                <li data-size="12">9pt</li>
+                <li data-size="10">8pt</li>
+                <li data-size="8">7pt</li>
+                <li data-size="7">6pt</li>
+                <li data-size="6">5pt</li>
+              </ul>
+            </div>
+          </div>
+          <div class="menu-item__size-add">
+            <i></i>
+          </div>
+          <div class="menu-item__size-minus">
+            <i></i>
+          </div>
+          <div class="menu-item__bold">
+            <i></i>
+          </div>
+          <div class="menu-item__italic">
+            <i></i>
+          </div>
+          <div class="menu-item__underline">
+            <i></i>
+          </div>
+          <div
+            class="menu-item__strikeout"
+            title="Strikethrough (Ctrl+Shift+X)"
+          >
+            <i></i>
+          </div>
+          <div class="menu-item__superscript">
+            <i></i>
+          </div>
+          <div class="menu-item__subscript">
+            <i></i>
+          </div>
+          <div class="menu-item__color" title="Text Color">
+            <i></i>
+            <span></span>
+            <input type="color" id="color" />
+          </div>
+          <div class="menu-item__highlight" title="Highlight">
+            <i></i>
+            <span></span>
+            <input type="color" id="highlight" />
+          </div>
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item">
+          <div class="menu-item__title">
+            <i></i>
+            <span class="select" title="Toggle Title">Body</span>
+            <div class="options">
+              <ul>
+                <li style="font-size: 16px">Body</li>
+                <li data-level="first" style="font-size: 26px">Heading 1</li>
+                <li data-level="second" style="font-size: 24px">Heading 2</li>
+                <li data-level="third" style="font-size: 22px">Heading 3</li>
+                <li data-level="fourth" style="font-size: 20px">Heading 4</li>
+                <li data-level="fifth" style="font-size: 18px">Heading 5</li>
+                <li data-level="sixth" style="font-size: 16px">Heading 6</li>
+              </ul>
+            </div>
+          </div>
+          <div class="menu-item__left">
+            <i></i>
+          </div>
+          <div class="menu-item__center">
+            <i></i>
+          </div>
+          <div class="menu-item__right">
+            <i></i>
+          </div>
+          <div class="menu-item__alignment">
+            <i></i>
+          </div>
+          <div class="menu-item__row-margin">
+            <i title="Line Spacing"></i>
+            <div class="options">
+              <ul>
+                <li data-rowmargin="1">1</li>
+                <li data-rowmargin="1.25">1.25</li>
+                <li data-rowmargin="1.5">1.5</li>
+                <li data-rowmargin="1.75">1.75</li>
+                <li data-rowmargin="2">2</li>
+                <li data-rowmargin="2.5">2.5</li>
+                <li data-rowmargin="3">3</li>
+              </ul>
+            </div>
+          </div>
+          <div class="menu-item__list">
+            <i></i>
+            <div class="options">
+              <ul>
+                <li>
+                  <label>Clear List</label>
+                </li>
+                <li data-list-type="ol" data-list-style="decimal">
+                  <label>Ordered List:</label>
+                  <ol>
+                    <li>________</li>
+                  </ol>
+                </li>
+                <li data-list-type="ul" data-list-style="disc">
+                  <label>Bullet List:</label>
+                  <ul style="list-style-type: disc">
+                    <li>________</li>
+                  </ul>
+                </li>
+                <li data-list-type="ul" data-list-style="circle">
+                  <label>Circle List:</label>
+                  <ul style="list-style-type: circle">
+                    <li>________</li>
+                  </ul>
+                </li>
+                <li data-list-type="ul" data-list-style="square">
+                  <label>Square List:</label>
+                  <ul style="list-style-type: square">
+                    <li>________</li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item">
+          <div class="menu-item__table">
+            <i title="Table"></i>
+          </div>
+          <div class="menu-item__table__collapse">
+            <div class="table-close">×</div>
+            <div class="table-title">
+              <span class="table-select">Insert</span>
+              <span>Table</span>
+            </div>
+            <div class="table-panel"></div>
+          </div>
+          <div class="menu-item__image">
+            <i title="Image"></i>
+            <input
+              type="file"
+              id="image"
+              accept=".png, .jpg, .jpeg, .svg, .gif"
+            />
+          </div>
+          <div class="menu-item__hyperlink">
+            <i title="Hyperlink"></i>
+          </div>
+          <div class="menu-item__separator">
+            <i title="Separator"></i>
+            <div class="options">
+              <ul>
+                <li data-separator="0,0">
+                  <i></i>
+                </li>
+                <li data-separator="1,1">
+                  <i></i>
+                </li>
+                <li data-separator="3,1">
+                  <i></i>
+                </li>
+                <li data-separator="4,4">
+                  <i></i>
+                </li>
+                <li data-separator="7,3,3,3">
+                  <i></i>
+                </li>
+                <li data-separator="6,2,2,2,2,2">
+                  <i></i>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="menu-item__watermark">
+            <i title="Watermark (Add/Delete)"></i>
+            <div class="options">
+              <ul>
+                <li data-menu="add">Add Watermark</li>
+                <li data-menu="delete">Delete Watermark</li>
+              </ul>
+            </div>
+          </div>
+          <div class="menu-item__codeblock" title="Code Block">
+            <i></i>
+          </div>
+          <div class="menu-item__page-break" title="Page Break">
+            <i></i>
+          </div>
+          <div class="menu-item__control">
+            <i title="Control"></i>
+            <div class="options">
+              <ul>
+                <li data-control="text">Text</li>
+                <li data-control="select">Enumeration</li>
+                <li data-control="checkbox">Checkbox</li>
+              </ul>
+            </div>
+          </div>
+          <div class="menu-item__checkbox" title="Checkbox">
+            <i></i>
+          </div>
+          <div class="menu-item__latex" title="LateX">
+            <i></i>
+          </div>
+          <div class="menu-item__date">
+            <i title="Date"></i>
+            <div class="options">
+              <ul>
+                <li data-format="yyyy-MM-dd"></li>
+                <li data-format="yyyy-MM-dd hh:mm:ss"></li>
+              </ul>
+            </div>
+          </div>
+          <div class="menu-item__block" title="Content Block">
+            <i></i>
+          </div>
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item">
+          <div class="menu-item__search" data-menu="search">
+            <i></i>
+          </div>
+          <div class="menu-item__search__collapse" data-menu="search">
+            <div class="menu-item__search__collapse__search">
+              <input type="text" />
+              <label class="search-result"></label>
+              <div class="arrow-left">
+                <i></i>
+              </div>
+              <div class="arrow-right">
+                <i></i>
+              </div>
+              <span>×</span>
+            </div>
+            <div class="menu-item__search__collapse__replace">
+              <input type="text" />
+              <button>Replace</button>
+            </div>
+          </div>
+          <div class="menu-item__print" data-menu="print">
+            <i></i>
+          </div>
+        </div>
+      </div>
+      <div class="catalog" editor-component="catalog">
+        <div class="catalog__header">
+          <span>Catalog</span>
+          <div class="catalog__header__close">
+            <i></i>
+          </div>
+        </div>
+        <div class="catalog__main"></div>
+      </div>
+      <div class="editor"></div>
+      <div class="footer" editor-component="footer">
+        <div>
+          <div class="catalog-mode" title="Catalog">
+            <i></i>
+          </div>
+          <div class="page-mode">
+            <i title="Page Mode (Paging, Continuity)"></i>
+            <div class="options">
+              <ul>
+                <li data-page-mode="paging" class="active">Paging</li>
+                <li data-page-mode="continuity">Continuity</li>
+              </ul>
+            </div>
+          </div>
+          <span>Visible Pages: <span class="page-no-list">1</span></span>
+          <span
+            >Page: <span class="page-no">1</span>/<span class="page-size"
+              >1</span
+            ></span
+          >
+          <span>Word Count: <span class="word-count">0</span></span>
+        </div>
+        <div class="editor-mode" title="Editor Mode (Edit, Clean, Read-only)">
+          edit
+        </div>
+        <div>
+          <div class="page-scale-minus" title="Zoom Out (Ctrl+-)">
+            <i></i>
+          </div>
+          <span
+            class="page-scale-percentage"
+            title="Zoom Level (Click to Reset Ctrl+0)"
+            >100%</span
+          >
+          <div class="page-scale-add" title="Zoom In (Ctrl+=)">
+            <i></i>
+          </div>
+          <div class="paper-size">
+            <i title="Page Size"></i>
+            <div class="options">
+              <ul>
+                <li data-paper-size="794*1123" class="active">A4</li>
+                <li data-paper-size="1593*2251">A2</li>
+                <li data-paper-size="1125*1593">A3</li>
+                <li data-paper-size="565*796">A5</li>
+                <li data-paper-size="412*488">Envelope 5</li>
+                <li data-paper-size="450*866">Envelope 6</li>
+                <li data-paper-size="609*862">Envelope 7</li>
+                <li data-paper-size="862*1221">Envelope 9</li>
+                <li data-paper-size="813*1266">Legal</li>
+                <li data-paper-size="813*1054">Letter</li>
+              </ul>
+            </div>
+          </div>
+          <div class="paper-direction">
+            <i title="Page Orientation"></i>
+            <div class="options">
+              <ul>
+                <li data-paper-direction="vertical" class="active">Portrait</li>
+                <li data-paper-direction="horizontal">Landscape</li>
+              </ul>
+            </div>
+          </div>
+          <div class="paper-margin" title="Page Margins">
+            <i></i>
+          </div>
+          <div class="fullscreen" title="Fullscreen Mode">
+            <i></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>

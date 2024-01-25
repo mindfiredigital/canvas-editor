@@ -2040,7 +2040,7 @@ export class CommandAdapt {
     let isApply = false
     for (let i = 0; i < elementList.length; i++) {
       const element = elementList[i]
-      // 删除空行、行首空格
+      // Delete blank lines and spaces at the beginning of lines
       if (element.value === ZERO) {
         while (i + 1 < elementList.length) {
           const nextElement = elementList[i + 1]
@@ -2051,7 +2051,7 @@ export class CommandAdapt {
       }
     }
     if (!isApply) {
-      // 避免输入框光标丢失
+      // Avoid input box cursor loss
       const isCollapsed = this.range.getIsCollapsed()
       this.draw.getCursor().drawCursor({
         isShow: isCollapsed

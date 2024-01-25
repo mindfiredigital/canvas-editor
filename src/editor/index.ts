@@ -161,7 +161,7 @@ export default class Editor {
       title: titleOptions,
       placeholder: placeholderOptions
     }
-    // 数据处理
+    // data processing
     let headerElementList: IElement[] = []
     let mainElementList: IElement[] = []
     let footerElementList: IElement[] = []
@@ -184,9 +184,7 @@ export default class Editor {
     })
     // 监听
     this.listener = new Listener()
-    // 事件
-    this.eventBus = new EventBus<EventBusMap>()
-    // 启动
+    // start up
     const draw = new Draw(
       container,
       editorOptions,
@@ -198,31 +196,31 @@ export default class Editor {
       this.listener,
       this.eventBus
     )
-    // 命令
+    // Order
     this.command = new Command(new CommandAdapt(draw))
-    // 菜单
+    // menu
     const contextMenu = new ContextMenu(draw, this.command)
-    // 快捷键
+    // hotkeys
     const shortcut = new Shortcut(draw, this.command)
-    // 注册
+    // register
     this.register = new Register({
       contextMenu,
       shortcut,
       i18n: draw.getI18n()
     })
-    // 注册销毁方法
+    // Register destroy method
     this.destroy = () => {
       draw.destroy()
       shortcut.removeEvent()
       contextMenu.removeEvent()
     }
-    // 插件
+    // plugin
     const plugin = new Plugin(this)
     this.use = plugin.use.bind(plugin)
   }
 }
 
-// 对外对象
+// External object
 export {
   Editor,
   RowFlex,
