@@ -50,12 +50,6 @@ window.onload = function () {
         }
       ],
       main: <IElement[]>data,
-      footer: [
-        {
-          value: 'canvas-editor',
-          size: 12
-        }
-      ]
     },
     options
   )
@@ -1215,7 +1209,7 @@ window.onload = function () {
   const modeElement = document.querySelector<HTMLDivElement>('.editor-mode')!
   modeElement.onclick = function () {
     // 模式选择循环
-    modeIndex === 2 ? (modeIndex = 0) : modeIndex++
+    modeIndex === modeList.length - 1 ? (modeIndex = 0) : modeIndex++
     // 设置模式
     const { name, mode } = modeList[modeIndex]
     modeElement.innerText = name
@@ -1448,7 +1442,9 @@ window.onload = function () {
     if (isCatalogShow) {
       updateCatalog()
     }
-  }, 200)
+  }
+  instance.listener.contentChange = debounce(handleContentChange, 200)
+  handleContentChange()
 
   instance.listener.saved = function (payload) {
     console.log('elementList: ', payload)

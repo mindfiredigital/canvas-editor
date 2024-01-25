@@ -43,6 +43,14 @@ export class Command {
   public executeTableTdVerticalAlign: CommandAdapt['tableTdVerticalAlign']
   public executeTableBorderType: CommandAdapt['tableBorderType']
   public executeTableTdBackgroundColor: CommandAdapt['tableTdBackgroundColor']
+  public executeTableTdBorderBgTop: CommandAdapt['tableTdBorderBgTop']
+  public executeTableTdBorderBgBottom: CommandAdapt['tableTdBorderBgBottom']
+  public executeTableTdBorderBgLeft: CommandAdapt['tableTdBorderBgLeft']
+  public executeTableTdBorderBgRight: CommandAdapt['tableTdBorderBgRight']
+  public executeTableTdBorderWidthTop: CommandAdapt['tableTdBorderWidthTop']
+  public executeTableTdBorderWidthLeft: CommandAdapt['tableTdBorderWidthLeft']
+  public executeTableTdBorderWidthBottom: CommandAdapt['tableTdBorderWidthBottom']
+  public executeTableTdBorderWidthRight: CommandAdapt['tableTdBorderWidthRight']
   public executeImage: CommandAdapt['image']
   public executeHyperlink: CommandAdapt['hyperlink']
   public executeDeleteHyperlink: CommandAdapt['deleteHyperlink']
@@ -77,11 +85,14 @@ export class Command {
   public getCatalog: CommandAdapt['getCatalog']
   public getImage: CommandAdapt['getImage']
   public getValue: CommandAdapt['getValue']
+  public getHTML: CommandAdapt['getHTML']
   public getWordCount: CommandAdapt['getWordCount']
   public getRangeText: CommandAdapt['getRangeText']
   public getRangeContext: CommandAdapt['getRangeContext']
   public getPaperMargin: CommandAdapt['getPaperMargin']
   public getSearchNavigateInfo: CommandAdapt['getSearchNavigateInfo']
+  public getContentStyles: CommandAdapt['getContentStyles']
+  public executeGlobalHyperlink: CommandAdapt['globalHyperlink']
 
   constructor(adapt: CommandAdapt) {
     // 全局命令
@@ -131,6 +142,17 @@ export class Command {
     this.executeTableBorderType = adapt.tableBorderType.bind(adapt)
     this.executeTableTdBackgroundColor =
       adapt.tableTdBackgroundColor.bind(adapt)
+    this.executeTableTdBorderBgTop = adapt.tableTdBorderBgTop.bind(adapt)
+    this.executeTableTdBorderBgBottom = adapt.tableTdBorderBgBottom.bind(adapt)
+    this.executeTableTdBorderBgLeft = adapt.tableTdBorderBgLeft.bind(adapt)
+    this.executeTableTdBorderBgRight = adapt.tableTdBorderBgRight.bind(adapt)
+    this.executeTableTdBorderWidthTop = adapt.tableTdBorderWidthTop.bind(adapt)
+    this.executeTableTdBorderWidthLeft =
+      adapt.tableTdBorderWidthLeft.bind(adapt)
+    this.executeTableTdBorderWidthBottom =
+      adapt.tableTdBorderWidthBottom.bind(adapt)
+    this.executeTableTdBorderWidthRight =
+      adapt.tableTdBorderWidthRight.bind(adapt)
     this.executeImage = adapt.image.bind(adapt)
     this.executeHyperlink = adapt.hyperlink.bind(adapt)
     this.executeDeleteHyperlink = adapt.deleteHyperlink.bind(adapt)
@@ -164,14 +186,17 @@ export class Command {
     this.executeSetLocale = adapt.setLocale.bind(adapt)
     this.executeLocationCatalog = adapt.locationCatalog.bind(adapt)
     this.executeWordTool = adapt.wordTool.bind(adapt)
+    this.executeGlobalHyperlink = adapt.globalHyperlink.bind(adapt)
     // 获取
     this.getImage = adapt.getImage.bind(adapt)
     this.getValue = adapt.getValue.bind(adapt)
+    this.getHTML = adapt.getHTML.bind(adapt)
     this.getWordCount = adapt.getWordCount.bind(adapt)
     this.getRangeText = adapt.getRangeText.bind(adapt)
     this.getRangeContext = adapt.getRangeContext.bind(adapt)
     this.getCatalog = adapt.getCatalog.bind(adapt)
     this.getPaperMargin = adapt.getPaperMargin.bind(adapt)
     this.getSearchNavigateInfo = adapt.getSearchNavigateInfo.bind(adapt)
+    this.getContentStyles = adapt.getContentStyles.bind(adapt)
   }
 }

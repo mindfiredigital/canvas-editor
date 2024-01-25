@@ -369,7 +369,7 @@ elementList.splice(452, 0, {
 //   size: 16
 // }])
 
-export const data: IElement[] = elementList
+export const data: IElement[] = []
 
 export const options: IEditorOption = {
   margins: [100, 120, 100, 120],

@@ -60,7 +60,6 @@ export class ContextMenu {
   private _addEvent() {
     // menu permissions
     this.container.addEventListener('contextmenu', this._proxyContextMenuEvent)
-    // Side Effects
     document.addEventListener('mousedown', this._handleEffect)
   }
 
@@ -69,7 +68,7 @@ export class ContextMenu {
       'contextmenu',
       this._proxyContextMenuEvent
     )
-    document.removeEventListener('mousedown', this._handleEffect)
+    document.removeEventListener('mousedown', this._handleSideEffect)
   }
 
   private _proxyContextMenuEvent = (evt: MouseEvent) => {
@@ -99,11 +98,12 @@ export class ContextMenu {
     evt.preventDefault()
   }
 
-  private _handleEffect = (evt: MouseEvent) => {
+  private _handleSideEffect = (evt: MouseEvent) => {
     if (this.contextMenuContainerList.length) {
       // right-click menu
+      const target = <Element>(evt?.composedPath()[0] || evt.target)
       const contextMenuDom = findParent(
-        evt.target as Element,
+        target,
         (node: Node & Element) =>
           !!node &&
           node.nodeType === 1 &&
