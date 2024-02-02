@@ -74,8 +74,19 @@
   "release": {
     "repositoryUrl": "https://github.com/mindfiredigital/canvas-editor.git",
     "branches": [
-      "feature/issue-16",
-      "next"
-    ]
+      "feature/issue-16"
+    ],
+    "verifyConditions": [
+      "@semantic-release/npm",
+      "@semantic-release/github"
+    ],
+    "prepare": [
+      "@semantic-release/npm"
+    ],
+    "publish": [
+      "@semantic-release/npm",
+      "@semantic-release/github"
+    ],
+    "npmPublish": true
   }
 }
