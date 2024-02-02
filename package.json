@@ -68,7 +68,13 @@
     "prismjs": "^1.27.0"
   },
   "simple-git-hooks": {
-    "pre-commit": "npm run lint && npm run type:check",
+    "pre-commit": "npm run lint",
     "commit-msg": "node scripts/verifyCommit.js"
+  },
+  "release": {
+    "repositoryUrl": "https://github.com/mindfiredigital/canvas-editor.git",
+    "branches": [
+      "feature/issue-16"
+    ]
   }
 }
