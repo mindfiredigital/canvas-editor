@@ -2,7 +2,7 @@
   "name": "@mindfiredigital/canvas-editor",
   "author": "Mindfire Digital LLP",
   "license": "MIT",
-  "version": "1.0.5",
+  "version": "0.0.0-development",
   "description": "rich text editor by canvas/svg",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
