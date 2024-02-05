@@ -60,7 +60,8 @@ export class ContextMenu {
   private _addEvent() {
     // menu permissions
     this.container.addEventListener('contextmenu', this._proxyContextMenuEvent)
-    document.addEventListener('mousedown', this._handleEffect)
+    // 副作用处理
+    document.addEventListener('mousedown', this._handleSideEffect)
   }
 
   public removeEvent() {
@@ -100,7 +101,7 @@ export class ContextMenu {
 
   private _handleSideEffect = (evt: MouseEvent) => {
     if (this.contextMenuContainerList.length) {
-      // right-click menu
+      // 点击非右键菜单内
       const target = <Element>(evt?.composedPath()[0] || evt.target)
       const contextMenuDom = findParent(
         target,

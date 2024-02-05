@@ -64,7 +64,7 @@ import { DOMEventHandlers } from './DOMEventHandlers'
 export default class Editor {
   public command: Command
   public listener: Listener
-  public eventBus: EventBus<EventBusMap>
+  public eventBus!: EventBus<EventBusMap>
   public register: Register
   public destroy: () => void
   public use: UsePlugin

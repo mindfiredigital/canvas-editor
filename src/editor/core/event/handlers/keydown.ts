@@ -2,7 +2,6 @@ import { EditorZone } from '../../..'
 import { ZERO } from '../../../dataset/constant/Common'
 import { ElementType } from '../../../dataset/enum/Element'
 import { KeyMap } from '../../../dataset/enum/KeyMap'
-import { MoveDirection } from '../../../dataset/enum/Observer'
 import { IElement, IElementPosition } from '../../../interface/Element'
 import { formatElementContext } from '../../../utils/element'
 import { isMod } from '../../../utils/hotkey'
@@ -224,7 +223,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
     ) {
       return
     }
-    // 查找下一行位置列表
+    // 查找下一行信息
     const probablePosition: IElementPosition[] = []
     if (isUp) {
       let p = index - 1
@@ -273,9 +272,10 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
       break
     }
     if (!nextIndex) return
+    const curIndex = nextIndex
     // shift则缩放选区
-    let anchorStartIndex = nextIndex
-    let anchorEndIndex = nextIndex
+    let anchorStartIndex = curIndex
+    let anchorEndIndex = curIndex
     if (evt.shiftKey) {
       if (startIndex !== endIndex) {
         if (startIndex === cursorPosition.index) {
@@ -302,11 +302,6 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
       isSetCursor: isCollapsed,
       isSubmitHistory: false,
       isCompute: false
-    })
-    // 将光标移动到可视范围内
-    draw.getCursor().moveCursorToVisible({
-      cursorPosition: positionList[isUp ? anchorStartIndex : anchorEndIndex],
-      direction: isUp ? MoveDirection.UP : MoveDirection.DOWN
     })
   } else if (isMod(evt) && evt.key === KeyMap.Z) {
     if (isReadonly) return
