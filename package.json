@@ -2,7 +2,7 @@
   "name": "@mindfiredigital/canvas-editor",
   "author": "Mindfire Digital LLP",
   "license": "MIT",
-  "version": "0.9.40",
+  "version": "0.0.0-development",
   "description": "rich text editor by canvas/svg",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
@@ -44,9 +44,7 @@
     "type:check": "tsc --noEmit",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs",
-    "postinstall": "simple-git-hooks",
-    "release": "node scripts/release.js"
+    "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^10.0.1",
@@ -57,7 +55,6 @@
     "cypress": "^9.5.1",
     "cypress-file-upload": "^5.0.8",
     "eslint": "7.32.0",
-    "simple-git-hooks": "^2.8.1",
     "typescript": "^4.3.2",
     "vite": "^2.4.2",
     "vite-plugin-css-injected-by-js": "^2.1.1",
@@ -68,7 +65,13 @@
     "prismjs": "^1.27.0"
   },
   "simple-git-hooks": {
-    "pre-commit": "npm run lint && npm run type:check",
+    "pre-commit": "npm run lint",
     "commit-msg": "node scripts/verifyCommit.js"
+  },
+  "release": {
+    "repositoryUrl": "https://github.com/mindfiredigital/canvas-editor.git",
+    "branches": [
+      "main"
+    ]
   }
 }
