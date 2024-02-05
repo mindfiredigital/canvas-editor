@@ -71,7 +71,7 @@
   "release": {
     "repositoryUrl": "https://github.com/mindfiredigital/canvas-editor.git",
     "branches": [
-      "feature/issue-16"
+      "main"
     ]
   }
 }

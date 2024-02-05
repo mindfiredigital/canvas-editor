@@ -3,7 +3,7 @@ name: Deployment Workflow
 on:
   push:
     branches:
-      - feature/issue-16
+      - main
   workflow_dispatch:
 jobs:
   build:
