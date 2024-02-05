@@ -2,12 +2,15 @@ import { EditorZone } from '../../..'
 import { ZERO } from '../../../dataset/constant/Common'
 import { ElementType } from '../../../dataset/enum/Element'
 import { KeyMap } from '../../../dataset/enum/KeyMap'
+import { MoveDirection } from '../../../dataset/enum/Observer'
 import { IElement, IElementPosition } from '../../../interface/Element'
 import { formatElementContext } from '../../../utils/element'
 import { isMod } from '../../../utils/hotkey'
 import { CanvasEvent } from '../CanvasEvent'
 
 export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
+  console.log('keydown')
+  
   if (host.isComposing) return
   const draw = host.getDraw()
   const position = draw.getPosition()
@@ -21,7 +24,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
   const rangeManager = draw.getRange()
   const { startIndex, endIndex } = rangeManager.getRange()
   const isCollapsed = startIndex === endIndex
-  // 当前激活控件
+  // currently active control
   const control = draw.getControl()
   const isPartRangeInControlOutside = control.isPartRangeInControlOutside()
   const activeControl = control.getActiveControl()
@@ -31,12 +34,12 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
     if (activeControl) {
       curIndex = control.keydown(evt)
     } else {
-      // 判断是否允许删除
+      // Determine whether to allow deletion
       if (isCollapsed && elementList[index].value === ZERO && index === 0) {
         evt.preventDefault()
         return
       }
-      //  清空当前行对齐方式
+      //  Clear the current row alignment
       const startElement = elementList[startIndex]
       if (isCollapsed && startElement.rowFlex && startElement.value === ZERO) {
         const rowList = draw.getRowList()
@@ -196,7 +199,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
   } else if (evt.key === KeyMap.Up || evt.key === KeyMap.Down) {
     if (isReadonly) return
     let anchorPosition: IElementPosition = cursorPosition
-    const isUp = evt.key === KeyMap.Up
+    // 扩大选区时，判断移动光标点
     if (evt.shiftKey) {
       if (startIndex === cursorPosition.index) {
         anchorPosition = positionList[endIndex]
@@ -213,7 +216,8 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
         rightTop: [curRightX]
       }
     } = anchorPosition
-    // 向上时在首行、向下时再最尾则忽略
+    // 向上时在首行、向下时在尾行则忽略
+    const isUp = evt.key === KeyMap.Up
     if (
       (isUp && rowIndex === 0) ||
       (!isUp && rowIndex === draw.getRowCount() - 1)
