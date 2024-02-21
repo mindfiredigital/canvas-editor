@@ -298,36 +298,57 @@ export class CommandAdapt {
     const isReadonly = this.draw.isReadonly()
     if (isReadonly) return
     const selection = this.range.getSelection()
-    if (!selection) return
-    const noBoldIndex = selection.findIndex(s => !s.bold)
-    selection.forEach(el => {
-      el.bold = !!~noBoldIndex
-    })
-    this.draw.render({ isSetCursor: false })
+    if (selection?.length) {
+      const noBoldIndex = selection.findIndex(s => !s.bold)
+      selection.forEach(el => {
+        el.bold = !!~noBoldIndex
+      })
+      this.draw.render({ isSetCursor: false })
+    } else {
+      const elementList = this.draw.getElementList()
+      const endIndex = elementList.length - 1
+      const enterElement = elementList[endIndex]
+      enterElement.bold = !enterElement.bold
+      this.draw.render({ curIndex: endIndex, isCompute: false })
+    }
   }
 
   public italic() {
     const isReadonly = this.draw.isReadonly()
     if (isReadonly) return
     const selection = this.range.getSelection()
-    if (!selection) return
-    const noItalicIndex = selection.findIndex(s => !s.italic)
-    selection.forEach(el => {
-      el.italic = !!~noItalicIndex
-    })
-    this.draw.render({ isSetCursor: false })
+    if (selection?.length) {
+      const noItalicIndex = selection.findIndex(s => !s.italic)
+      selection.forEach(el => {
+        el.italic = !!~noItalicIndex
+      })
+      this.draw.render({ isSetCursor: false })
+    } else {
+      const elementList = this.draw.getElementList()
+      const endIndex = elementList.length - 1
+      const enterElement = elementList[endIndex]
+      enterElement.italic = !enterElement.italic
+      this.draw.render({ curIndex: endIndex, isCompute: false })
+    }
   }
 
   public underline() {
     const isReadonly = this.draw.isReadonly()
     if (isReadonly) return
     const selection = this.range.getSelection()
-    if (!selection) return
-    const noUnderlineIndex = selection.findIndex(s => !s.underline)
-    selection.forEach(el => {
-      el.underline = !!~noUnderlineIndex
-    })
-    this.draw.render({ isSetCursor: false })
+    if (selection?.length) {
+      const noUnderlineIndex = selection.findIndex(s => !s.underline)
+      selection.forEach(el => {
+        el.underline = !!~noUnderlineIndex
+      })
+      this.draw.render({ isSetCursor: false })
+    } else {
+      const elementList = this.draw.getElementList()
+      const endIndex = elementList.length - 1
+      const enterElement = elementList[endIndex]
+      enterElement.underline = !enterElement.underline
+      this.draw.render({ curIndex: endIndex, isCompute: false })
+    }
   }
 
   public strikeout() {
