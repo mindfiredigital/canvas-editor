@@ -4,13 +4,13 @@ const config = {
     '@semantic-release/commit-analyzer',
     '@semantic-release/release-notes-generator',
     [
-      '@semantic-release/github',
+      '@semantic-release/git',
       {
         assets: ['dist'],
         message:
           'chore(release): ${nextRelease.version} [skin ci]\n\n${nextRelease.notes}'
       }
     ],
-    '@semantic-release/git'
+    '@semantic-release/github'
   ]
 }
