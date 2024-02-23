@@ -48,6 +48,9 @@
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^10.0.1",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^9.2.6",
     "@types/node": "^16.11.12",
     "@types/prismjs": "^1.26.0",
     "@typescript-eslint/eslint-plugin": "4.33.0",
@@ -69,9 +72,6 @@
     "commit-msg": "node scripts/verifyCommit.js"
   },
   "release": {
-    "repositoryUrl": "https://github.com/mindfiredigital/canvas-editor.git",
-    "branches": [
-      "main"
-    ]
+    "repositoryUrl": "https://github.com/mindfiredigital/canvas-editor.git"
   }
 }

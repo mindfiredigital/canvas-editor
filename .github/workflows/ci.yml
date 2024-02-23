@@ -1,16 +1,16 @@
 name: Deployment Workflow
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+
 jobs:
   build:
     name: '@mindfiredigital/canvas-editor'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      issues: write
+      pull-requests: write
       packages: read
     steps:
       - name: 'Checkout repository'
@@ -26,11 +26,11 @@ jobs:
 
       - name: 'Build application'
         run: npm run lib
-      
+
       - name: 'Restore changes in json'
         run: |
           git restore package-lock.json
-      
+
       - name: 'Set Git user name and email'
         run: |
           git config --local user.email "github-actions@github.com"
@@ -42,8 +42,8 @@ jobs:
     permissions:
       contents: write
     needs: build
-    steps: 
-      - name: Checkout code 
+    steps:
+      - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Set up Node.js
@@ -54,7 +54,7 @@ jobs:
       - name: Semantic Release and npm release
         run: |
           npm ci
-          npx semantic-release@22.0.0
+          npx semantic-release
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
