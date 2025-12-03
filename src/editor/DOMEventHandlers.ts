@@ -28,14 +28,23 @@ export class DOMEventHandlers {
     container: HTMLDivElement,
     data: IEditorData | IElement[],
     options: IEditorOption = {}
-  ) {
+  ): Editor {
     // if (DOMEventHandlers.instance) {
     //   console.log('tried to register again. Returning')
     //   return
     // }
+    if (DOMEventHandlers.instance) {
+      try {
+        DOMEventHandlers.instance.destroy();
+      } catch (e) {
+        console.warn("Cleaning up old editor instance");
+      }
+    }
     DOMEventHandlers.instance = new Editor(container, data, options)
     DOMEventHandlers.instance.command.executeSetLocale('en')
     DOMEventHandlers.instance.register.langMap('en', en)
+    
+    return DOMEventHandlers.instance;
   }
 
   static handleUndo() {
