@@ -35,16 +35,16 @@ export class DOMEventHandlers {
     // }
     if (DOMEventHandlers.instance) {
       try {
-        DOMEventHandlers.instance.destroy();
+        DOMEventHandlers.instance.destroy()
       } catch (e) {
-        console.warn("Cleaning up old editor instance");
+        console.warn('Cleaning up old editor instance')
       }
     }
     DOMEventHandlers.instance = new Editor(container, data, options)
     DOMEventHandlers.instance.command.executeSetLocale('en')
     DOMEventHandlers.instance.register.langMap('en', en)
     
-    return DOMEventHandlers.instance;
+    return DOMEventHandlers.instance
   }
 
   static handleUndo() {

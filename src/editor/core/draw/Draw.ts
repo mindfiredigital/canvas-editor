@@ -143,7 +143,7 @@ export class Draw {
   private intersectionPageNo: number
   private lazyRenderIntersectionObserver: IntersectionObserver | null
 
-  private isDestroyed: boolean = false;
+  private isDestroyed = false
 
   constructor(
     rootContainer: HTMLElement,
@@ -359,7 +359,7 @@ export class Draw {
   }
 
   public setIntersectionPageNo(payload: number) {
-    if (this.isDestroyed) return;
+    if (this.isDestroyed) return
     this.intersectionPageNo = payload
     if (this.listener.intersectionPageNoChange) {
       this.listener.intersectionPageNoChange(this.intersectionPageNo)
@@ -1719,7 +1719,7 @@ export class Draw {
   }
 
   public render(payload?: IDrawOption) {
-    if (this.isDestroyed) return;
+    if (this.isDestroyed) return
     const { header, footer } = this.options
     const {
       isSubmitHistory = true,
@@ -1853,7 +1853,7 @@ export class Draw {
   }
 
   public destroy() {
-    this.isDestroyed = true;
+    this.isDestroyed = true
     this.container.remove()
     this.globalEvent.removeEvent()
     this.scrollObserver.removeEvent()
