@@ -318,6 +318,7 @@ export class RangeManager {
   }
 
   public setRangeStyle() {
+    if (!this.eventBus || !this.listener) return;
     const rangeStyleChangeListener = this.listener.rangeStyleChange
     const isSubscribeRangeStyleChange =
       this.eventBus.isSubscribe('rangeStyleChange')
