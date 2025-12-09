@@ -143,7 +143,7 @@ export class Draw {
   private intersectionPageNo: number
   private lazyRenderIntersectionObserver: IntersectionObserver | null
 
-  private isDestroyed = false;
+  private isDestroyed = false
 
   constructor(
     rootContainer: HTMLElement,
