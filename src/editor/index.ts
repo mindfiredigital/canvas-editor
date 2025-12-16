@@ -60,6 +60,7 @@ import { UsePlugin } from './interface/Plugin'
 import { EventBus } from './core/event/eventbus/EventBus'
 import { EventBusMap } from './interface/EventBus'
 import { DOMEventHandlers } from './DOMEventHandlers'
+import { IRangeStyle } from './interface/Listener'
 
 export default class Editor {
   public command: Command
@@ -261,5 +262,6 @@ export type {
   IBlock,
   ILang,
   ICatalog,
-  ICatalogItem
+  ICatalogItem,
+  IRangeStyle,
 }
