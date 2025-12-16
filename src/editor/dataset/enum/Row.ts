@@ -3,5 +3,5 @@ export enum RowFlex {
   CENTER = 'center',
   RIGHT = 'right',
   ALIGNMENT = 'alignment',
-  JUSTIFY = "justify",
+  JUSTIFY = 'justify',
 }

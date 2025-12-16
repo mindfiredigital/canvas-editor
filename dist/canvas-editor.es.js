@@ -6790,6 +6790,8 @@ class RangeManager {
     return rangeStyle;
   }
   setRangeStyle() {
+    if (!this.eventBus || !this.listener)
+      return;
     const rangeStyleChangeListener = this.listener.rangeStyleChange;
     const isSubscribeRangeStyleChange = this.eventBus.isSubscribe("rangeStyleChange");
     if (!rangeStyleChangeListener && !isSubscribeRangeStyleChange)
@@ -10870,6 +10872,7 @@ class Draw {
     __publicField(this, "visiblePageNoList");
     __publicField(this, "intersectionPageNo");
     __publicField(this, "lazyRenderIntersectionObserver");
+    __publicField(this, "isDestroyed", false);
     this.container = this._wrapContainer(rootContainer);
     this.pageList = [];
     this.ctxList = [];
@@ -11039,6 +11042,8 @@ class Draw {
     return this.intersectionPageNo;
   }
   setIntersectionPageNo(payload) {
+    if (this.isDestroyed)
+      return;
     this.intersectionPageNo = payload;
     if (this.listener.intersectionPageNoChange) {
       this.listener.intersectionPageNoChange(this.intersectionPageNo);
@@ -12085,6 +12090,8 @@ class Draw {
   }
   render(payload) {
     var _a;
+    if (this.isDestroyed)
+      return;
     const { header, footer } = this.options;
     const { isSubmitHistory = true, isSetCursor = true, isCompute = true, isLazy = true, isInit = false } = payload || {};
     let { curIndex } = payload || {};
@@ -12187,6 +12194,7 @@ class Draw {
     });
   }
   destroy() {
+    this.isDestroyed = true;
     this.container.remove();
     this.globalEvent.removeEvent();
     this.scrollObserver.removeEvent();

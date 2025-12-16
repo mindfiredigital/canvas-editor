@@ -185,7 +185,7 @@ export default class Editor {
     })
     // 监听
     this.listener = new Listener()
-    this.eventBus = new EventBus()
+    this.eventBus = new EventBus<EventBusMap>()
     // start up
     const draw = new Draw(
       container,
