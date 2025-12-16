@@ -65,6 +65,7 @@ var RowFlex;
   RowFlex2["CENTER"] = "center";
   RowFlex2["RIGHT"] = "right";
   RowFlex2["ALIGNMENT"] = "alignment";
+  RowFlex2["JUSTIFY"] = "justify";
 })(RowFlex || (RowFlex = {}));
 function debounce(func, delay) {
   let timer;
@@ -15659,6 +15660,43 @@ class Plugin {
     pluginFunction(this.editor, options);
   }
 }
+class EventBus {
+  constructor() {
+    __publicField(this, "eventHub");
+    this.eventHub = new Map();
+  }
+  on(eventName, callback) {
+    if (!eventName || typeof callback !== "function")
+      return;
+    const eventSet = this.eventHub.get(eventName) || new Set();
+    eventSet.add(callback);
+    this.eventHub.set(eventName, eventSet);
+  }
+  emit(eventName, payload) {
+    if (!eventName)
+      return;
+    const callBackSet = this.eventHub.get(eventName);
+    if (!callBackSet)
+      return;
+    if (callBackSet.size === 1) {
+      const callBack = [...callBackSet];
+      return callBack[0](payload);
+    }
+    callBackSet.forEach((callBack) => callBack(payload));
+  }
+  off(eventName, callback) {
+    if (!eventName || typeof callback !== "function")
+      return;
+    const callBackSet = this.eventHub.get(eventName);
+    if (!callBackSet)
+      return;
+    callBackSet.delete(callback);
+  }
+  isSubscribe(eventName) {
+    const eventSet = this.eventHub.get(eventName);
+    return !!eventSet && eventSet.size > 0;
+  }
+}
 const _DOMEventHandlers = class {
   static getEditorInstance() {
     if (!_DOMEventHandlers.instance) {
@@ -15667,9 +15705,17 @@ const _DOMEventHandlers = class {
     return _DOMEventHandlers.instance;
   }
   static register(container, data2, options = {}) {
+    if (_DOMEventHandlers.instance) {
+      try {
+        _DOMEventHandlers.instance.destroy();
+      } catch (e) {
+        console.warn("Cleaning up old editor instance");
+      }
+    }
     _DOMEventHandlers.instance = new Editor(container, data2, options);
     _DOMEventHandlers.instance.command.executeSetLocale("en");
     _DOMEventHandlers.instance.register.langMap("en", en);
+    return _DOMEventHandlers.instance;
   }
   static handleUndo() {
     _DOMEventHandlers.getEditorInstance().command.executeUndo();
@@ -15908,6 +15954,7 @@ class Editor {
       });
     });
     this.listener = new Listener();
+    this.eventBus = new EventBus();
     const draw = new Draw(container, editorOptions, {
       header: headerElementList,
       main: mainElementList,
