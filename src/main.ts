@@ -1,6 +1,5 @@
 import { data, options } from './mock'
 import './style.css'
-// syntax highlishting
 import prism from 'prismjs'
 import Editor, {
   BlockType,
@@ -782,7 +781,6 @@ window.onload = function () {
   dateDom.onclick = function () {
     console.log('date')
     dateDomOptionDom.classList.toggle('visible')
-    // 定位调整
     const bodyRect = document.body.getBoundingClientRect()
     const dateDomOptionRect = dateDomOptionDom.getBoundingClientRect()
     if (dateDomOptionRect.left + dateDomOptionRect.width > bodyRect.width) {
@@ -792,7 +790,6 @@ window.onload = function () {
       dateDomOptionDom.style.right = 'unset'
       dateDomOptionDom.style.left = '0px'
     }
-    // 当前日期
     const date = new Date()
     const year = date.getFullYear().toString()
     const month = (date.getMonth() + 1).toString().padStart(2, '0')
