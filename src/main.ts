@@ -27,7 +27,6 @@ window.onload = function () {
   const isApple =
     typeof navigator !== 'undefined' && /Mac OS X/.test(navigator.userAgent)
 
-  // 1. 初始化编辑器
   const container = document.querySelector<HTMLDivElement>('.editor')!
   const instance = new Editor(
     container,
@@ -59,10 +58,8 @@ window.onload = function () {
     options
   )
   console.log('实例: ', instance)
-  // cypress使用
   Reflect.set(window, 'editor', instance)
 
-  // 菜单弹窗销毁
   window.addEventListener(
     'click',
     evt => {
@@ -75,7 +72,6 @@ window.onload = function () {
     }
   )
 
-  // 2. | 撤销 | 重做 | 格式刷 | 清除格式 |
   const undoDom = document.querySelector<HTMLDivElement>('.menu-item__undo')!
   undoDom.title = `撤销(${isApple ? '⌘' : 'Ctrl'}+Z)`
   undoDom.onclick = function () {
