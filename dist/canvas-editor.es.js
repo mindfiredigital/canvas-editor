@@ -4349,13 +4349,14 @@ function getElementListByHTML(htmlText, options) {
             colgroup: [],
             trList: []
           };
-          tableElement.querySelectorAll("tr").forEach((trElement) => {
+          const rowElements = Array.from(tableElement.rows).filter((trElement) => trElement.closest("table") === tableElement);
+          rowElements.forEach((trElement) => {
             const trHeightStr = window.getComputedStyle(trElement).height.replace("px", "");
             const tr = {
-              height: Number(trHeightStr),
+              height: Number.isFinite(Number(trHeightStr)) ? Number(trHeightStr) : 0,
               tdList: []
             };
-            trElement.querySelectorAll("th,td").forEach((tdElement) => {
+            Array.from(trElement.cells).forEach((tdElement) => {
               const tableCell = tdElement;
               const valueList = getElementListByHTML(tableCell.innerHTML, options);
               const td = {
@@ -11664,14 +11665,24 @@ class Draw {
         const rowMarginHeight = rowMargin * 2 * scale;
         if (curPagePreHeight + rowMarginHeight + elementHeight > height2) {
           const trList2 = element.trList;
+          const maxTableContentHeight = height2 - marginHeight - rowMarginHeight;
           let deleteStart = 0;
           let deleteCount = 0;
           let preTrHeight = 0;
+          let splitRowIndex = null;
+          let splitAvailableHeight = 0;
           if (trList2.length > 1) {
             for (let r = 0; r < trList2.length; r++) {
               const tr = trList2[r];
               const trHeight = tr.height * scale;
               if (curPagePreHeight + rowMarginHeight + preTrHeight + trHeight > height2) {
+                if (trHeight > maxTableContentHeight && maxTableContentHeight > 0) {
+                  splitRowIndex = r;
+                  splitAvailableHeight = height2 - (curPagePreHeight + rowMarginHeight + preTrHeight);
+                  if (splitAvailableHeight <= 0) {
+                    splitAvailableHeight = maxTableContentHeight;
+                  }
+                }
                 if (((_c = element.colgroup) == null ? void 0 : _c.length) !== tr.tdList.length) {
                   deleteCount = 0;
                 }
@@ -11683,22 +11694,100 @@ class Draw {
               }
             }
           }
-          if (deleteCount) {
-            const cloneTrList = trList2.splice(deleteStart, deleteCount);
-            const cloneTrHeight = cloneTrList.reduce((pre, cur) => pre + cur.height, 0);
-            element.height -= cloneTrHeight;
-            metrics.height -= cloneTrHeight;
-            metrics.boundingBoxDescent -= cloneTrHeight;
+          let cloneTrList = null;
+          if (splitRowIndex !== null) {
+            const splitTr = trList2[splitRowIndex];
+            const tdGapPx = tdPadding * 2 * scale;
+            const splitRow = (tr, availableHeightPx) => {
+              if (availableHeightPx <= 0)
+                return null;
+              const maxContentHeightPx = Math.max(availableHeightPx - tdGapPx, 0);
+              const topTr = __spreadProps(__spreadValues({}, tr), { tdList: [] });
+              const bottomTr = __spreadProps(__spreadValues({}, tr), { tdList: [] });
+              let topRowHeight = 0;
+              let bottomRowHeight = 0;
+              for (let d = 0; d < tr.tdList.length; d++) {
+                const td = tr.tdList[d];
+                if (td.rowspan > 1)
+                  return null;
+                const rowList2 = td.rowList;
+                if (!(rowList2 == null ? void 0 : rowList2.length))
+                  return null;
+                let accHeight = 0;
+                let splitCount = 0;
+                for (let r = 0; r < rowList2.length; r++) {
+                  const row = rowList2[r];
+                  if (accHeight + row.height <= maxContentHeightPx || splitCount === 0) {
+                    accHeight += row.height;
+                    splitCount++;
+                  } else {
+                    break;
+                  }
+                }
+                if (splitCount >= rowList2.length)
+                  return null;
+                const topRowList = rowList2.slice(0, splitCount);
+                const bottomRowList = rowList2.slice(splitCount);
+                const lastTopRow = topRowList[topRowList.length - 1];
+                const splitIndex = lastTopRow.startIndex + lastTopRow.elementList.length;
+                const topValue = td.value.slice(0, splitIndex);
+                const bottomValue = td.value.slice(splitIndex);
+                if (!bottomValue.length)
+                  return null;
+                const topContentHeight = topRowList.reduce((pre, cur) => pre + cur.height, 0);
+                const bottomContentHeight = bottomRowList.reduce((pre, cur) => pre + cur.height, 0);
+                const topTdHeight = (topContentHeight + tdGapPx) / scale;
+                const bottomTdHeight = (bottomContentHeight + tdGapPx) / scale;
+                topRowHeight = Math.max(topRowHeight, topTdHeight);
+                bottomRowHeight = Math.max(bottomRowHeight, bottomTdHeight);
+                const topTd = __spreadProps(__spreadValues({}, td), {
+                  value: topValue,
+                  rowList: topRowList,
+                  positionList: void 0
+                });
+                const bottomTd = __spreadProps(__spreadValues({}, td), {
+                  value: bottomValue,
+                  rowList: bottomRowList,
+                  positionList: void 0
+                });
+                topTr.tdList.push(topTd);
+                bottomTr.tdList.push(bottomTd);
+              }
+              topTr.height = topRowHeight;
+              topTr.minHeight = topRowHeight;
+              bottomTr.height = bottomRowHeight;
+              bottomTr.minHeight = bottomRowHeight;
+              return { top: topTr, bottom: bottomTr };
+            };
+            const splitResult = splitRow(splitTr, splitAvailableHeight);
+            if (splitResult) {
+              trList2[splitRowIndex] = splitResult.top;
+              const restTrList = trList2.splice(splitRowIndex + 1);
+              cloneTrList = [splitResult.bottom, ...restTrList];
+            }
+          }
+          if (!cloneTrList && deleteCount) {
+            cloneTrList = trList2.splice(deleteStart, deleteCount);
+          }
+          if (cloneTrList == null ? void 0 : cloneTrList.length) {
+            const currentTrHeight = trList2.reduce((pre, cur) => pre + cur.height, 0);
+            element.height = currentTrHeight;
+            metrics.height = currentTrHeight * scale;
+            metrics.boundingBoxDescent = metrics.height;
             const cloneElement = deepClone(element);
             cloneElement.trList = cloneTrList;
             cloneElement.id = getUUID();
             this.spliceElementList(elementList, i + 1, 0, cloneElement);
             const positionContext = this.position.getPositionContext();
-            if (positionContext.isTable && positionContext.trIndex === deleteStart) {
-              positionContext.index += 1;
-              positionContext.trIndex = 0;
-              this.position.setPositionContext(positionContext);
+            if (positionContext.isTable && positionContext.trIndex !== void 0) {
+              const splitIndex = splitRowIndex != null ? splitRowIndex : deleteStart;
+              if (positionContext.trIndex > splitIndex) {
+                positionContext.index += 1;
+                positionContext.trIndex = positionContext.trIndex - splitIndex - 1;
+                this.position.setPositionContext(positionContext);
+              }
             }
+            this.tableParticle.computeRowColInfo(element);
           }
         }
       } else if (element.type === ElementType.SEPARATOR) {

@@ -989,15 +989,20 @@ export function getElementListByHTML(
             trList: []
           }
           // 基础数据
-          tableElement.querySelectorAll('tr').forEach(trElement => {
+          const rowElements = Array.from(tableElement.rows).filter(
+            trElement => trElement.closest('table') === tableElement
+          )
+          rowElements.forEach(trElement => {
             const trHeightStr = window
               .getComputedStyle(trElement)
               .height.replace('px', '')
             const tr: ITr = {
-              height: Number(trHeightStr),
+              height: Number.isFinite(Number(trHeightStr))
+                ? Number(trHeightStr)
+                : 0,
               tdList: []
             }
-            trElement.querySelectorAll('th,td').forEach(tdElement => {
+            Array.from(trElement.cells).forEach(tdElement => {
               const tableCell = <HTMLTableCellElement>tdElement
               const valueList = getElementListByHTML(
                 tableCell.innerHTML,

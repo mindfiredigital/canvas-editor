@@ -21,6 +21,8 @@ import {
   IElementStyle
 } from '../../interface/Element'
 import { IRow, IRowElement } from '../../interface/Row'
+import { ITd } from '../../interface/table/Td'
+import { ITr } from '../../interface/table/Tr'
 import { deepClone, getUUID, nextTick } from '../../utils'
 import { Cursor } from '../cursor/Cursor'
 import { CanvasEvent } from '../event/CanvasEvent'
@@ -1126,10 +1128,13 @@ export class Draw {
         const rowMarginHeight = rowMargin * 2 * scale
         if (curPagePreHeight + rowMarginHeight + elementHeight > height) {
           const trList = element.trList!
+          const maxTableContentHeight = height - marginHeight - rowMarginHeight
           // 计算需要移除的行数
           let deleteStart = 0
           let deleteCount = 0
           let preTrHeight = 0
+          let splitRowIndex: number | null = null
+          let splitAvailableHeight = 0
           if (trList.length > 1) {
             for (let r = 0; r < trList.length; r++) {
               const tr = trList[r]
@@ -1138,6 +1143,15 @@ export class Draw {
                 curPagePreHeight + rowMarginHeight + preTrHeight + trHeight >
                 height
               ) {
+                // 行高超过单页可用高度，尝试拆分该行
+                if (trHeight > maxTableContentHeight && maxTableContentHeight > 0) {
+                  splitRowIndex = r
+                  splitAvailableHeight =
+                    height - (curPagePreHeight + rowMarginHeight + preTrHeight)
+                  if (splitAvailableHeight <= 0) {
+                    splitAvailableHeight = maxTableContentHeight
+                  }
+                }
                 // 是否跨列
                 if (element.colgroup?.length !== tr.tdList.length) {
                   deleteCount = 0
@@ -1150,15 +1164,99 @@ export class Draw {
               }
             }
           }
-          if (deleteCount) {
-            const cloneTrList = trList.splice(deleteStart, deleteCount)
-            const cloneTrHeight = cloneTrList.reduce(
+          let cloneTrList: ITr[] | null = null
+          if (splitRowIndex !== null) {
+            const splitTr = trList[splitRowIndex]
+            const tdGapPx = tdPadding * 2 * scale
+            const splitRow = (
+              tr: ITr,
+              availableHeightPx: number
+            ): { top: ITr; bottom: ITr } | null => {
+              if (availableHeightPx <= 0) return null
+              const maxContentHeightPx = Math.max(
+                availableHeightPx - tdGapPx,
+                0
+              )
+              const topTr: ITr = { ...tr, tdList: [] }
+              const bottomTr: ITr = { ...tr, tdList: [] }
+              let topRowHeight = 0
+              let bottomRowHeight = 0
+              for (let d = 0; d < tr.tdList.length; d++) {
+                const td = tr.tdList[d]
+                if (td.rowspan > 1) return null
+                const rowList = td.rowList
+                if (!rowList?.length) return null
+                let accHeight = 0
+                let splitCount = 0
+                for (let r = 0; r < rowList.length; r++) {
+                  const row = rowList[r]
+                  if (accHeight + row.height <= maxContentHeightPx || splitCount === 0) {
+                    accHeight += row.height
+                    splitCount++
+                  } else {
+                    break
+                  }
+                }
+                if (splitCount >= rowList.length) return null
+                const topRowList = rowList.slice(0, splitCount)
+                const bottomRowList = rowList.slice(splitCount)
+                const lastTopRow = topRowList[topRowList.length - 1]
+                const splitIndex =
+                  lastTopRow.startIndex + lastTopRow.elementList.length
+                const topValue = td.value.slice(0, splitIndex)
+                const bottomValue = td.value.slice(splitIndex)
+                if (!bottomValue.length) return null
+                const topContentHeight = topRowList.reduce(
+                  (pre, cur) => pre + cur.height,
+                  0
+                )
+                const bottomContentHeight = bottomRowList.reduce(
+                  (pre, cur) => pre + cur.height,
+                  0
+                )
+                const topTdHeight = (topContentHeight + tdGapPx) / scale
+                const bottomTdHeight = (bottomContentHeight + tdGapPx) / scale
+                topRowHeight = Math.max(topRowHeight, topTdHeight)
+                bottomRowHeight = Math.max(bottomRowHeight, bottomTdHeight)
+                const topTd: ITd = {
+                  ...td,
+                  value: topValue,
+                  rowList: topRowList,
+                  positionList: undefined
+                }
+                const bottomTd: ITd = {
+                  ...td,
+                  value: bottomValue,
+                  rowList: bottomRowList,
+                  positionList: undefined
+                }
+                topTr.tdList.push(topTd)
+                bottomTr.tdList.push(bottomTd)
+              }
+              topTr.height = topRowHeight
+              topTr.minHeight = topRowHeight
+              bottomTr.height = bottomRowHeight
+              bottomTr.minHeight = bottomRowHeight
+              return { top: topTr, bottom: bottomTr }
+            }
+            const splitResult = splitRow(splitTr, splitAvailableHeight)
+            if (splitResult) {
+              trList[splitRowIndex] = splitResult.top
+              const restTrList = trList.splice(splitRowIndex + 1)
+              cloneTrList = [splitResult.bottom, ...restTrList]
+            }
+          }
+          if (!cloneTrList && deleteCount) {
+            cloneTrList = trList.splice(deleteStart, deleteCount)
+          }
+          if (cloneTrList?.length) {
+            const currentTrHeight = trList.reduce(
               (pre, cur) => pre + cur.height,
               0
             )
-            element.height -= cloneTrHeight
-            metrics.height -= cloneTrHeight
-            metrics.boundingBoxDescent -= cloneTrHeight
+            element.height = currentTrHeight
+            metrics.height = currentTrHeight * scale
+            metrics.boundingBoxDescent = metrics.height
             // 追加拆分表格
             const cloneElement = deepClone(element)
             cloneElement.trList = cloneTrList
@@ -1168,12 +1266,18 @@ export class Draw {
             const positionContext = this.position.getPositionContext()
             if (
               positionContext.isTable &&
-              positionContext.trIndex === deleteStart
+              positionContext.trIndex !== undefined
             ) {
-              positionContext.index! += 1
-              positionContext.trIndex = 0
-              this.position.setPositionContext(positionContext)
+              const splitIndex = splitRowIndex ?? deleteStart
+              if (positionContext.trIndex > splitIndex) {
+                positionContext.index! += 1
+                positionContext.trIndex =
+                  positionContext.trIndex - splitIndex - 1
+                this.position.setPositionContext(positionContext)
+              }
             }
+            // 需要重新计算表格内值
+            this.tableParticle.computeRowColInfo(element)
           }
         }
       } else if (element.type === ElementType.SEPARATOR) {
