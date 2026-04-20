@@ -1514,6 +1514,7 @@ export class Draw {
     const {
       scale,
       tdPadding,
+      defaultBasicRowMarginHeight, 
       defaultRowMargin,
       defaultSize
     } = this.options
