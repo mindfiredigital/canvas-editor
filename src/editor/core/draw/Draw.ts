@@ -1342,17 +1342,22 @@ export class Draw {
           metrics.boundingBoxDescent += metrics.height / 2
         }
       }
-      const ascent =
+      const isImageOrLatex =
         (element.imgDisplay !== ImageDisplay.INLINE &&
           element.type === ElementType.IMAGE) ||
         element.type === ElementType.LATEX
-          ? metrics.height + rowMargin
-          : metrics.boundingBoxAscent + rowMargin
-      const height =
-        rowMargin +
-        metrics.boundingBoxAscent +
-        metrics.boundingBoxDescent +
-        rowMargin
+      const lineSpacing = element.rowMargin || defaultRowMargin
+      const elementFontSize = (element.size || defaultSize) * scale
+      const lineHeight = elementFontSize * lineSpacing
+      const contentHeight =
+        metrics.boundingBoxAscent + metrics.boundingBoxDescent
+      const lineMargin = Math.max(0, (lineHeight - contentHeight) / 2)
+      const ascent = isImageOrLatex
+        ? metrics.height + rowMargin
+        : metrics.boundingBoxAscent + lineMargin
+      const height = isImageOrLatex
+        ? metrics.height + rowMargin * 2
+        : Math.max(lineHeight, contentHeight)
       const rowElement: IRowElement = Object.assign(element, {
         metrics,
         style: this._getFont(element, scale)
@@ -1506,8 +1511,12 @@ export class Draw {
     const { rowList, pageNo, elementList, positionList, startIndex, zone } =
       payload
     // const { scale, tdPadding } = this.options
-    const { scale, tdPadding, defaultBasicRowMarginHeight, defaultRowMargin } =
-      this.options
+    const {
+      scale,
+      tdPadding,
+      defaultRowMargin,
+      defaultSize
+    } = this.options
     const { isCrossRowCol, tableId } = this.range.getRange()
     let index = startIndex
     for (let i = 0; i < rowList.length; i++) {
@@ -1604,15 +1613,19 @@ export class Draw {
         }
         // 下划线记录
         if (element.underline) {
-          const rowMargin =
-            defaultBasicRowMarginHeight *
-            (element.rowMargin || defaultRowMargin) *
-            scale
+          const ulLineSpacing = element.rowMargin || defaultRowMargin
+          const ulFontSize = (element.size || defaultSize) * scale
+          const ulLineHeight = ulFontSize * ulLineSpacing
+          const ulContentHeight =
+            metrics.boundingBoxAscent + metrics.boundingBoxDescent
+          const ulLineMargin = Math.max(
+            0,
+            (ulLineHeight - ulContentHeight) / 2
+          )
           this.underline.recordFillInfo(
             ctx,
             x,
-            // y + curRow.height,
-            y + curRow.height - rowMargin,
+            y + curRow.height - ulLineMargin,
             metrics.width,
             0,
             element.color

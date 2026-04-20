@@ -550,6 +550,10 @@ export class CommandAdapt {
     this.draw.render({ curIndex, isSetCursor })
   }
 
+  public lineSpacing(payload: number) {
+    return this.rowMargin(payload)
+  }
+
   public rowMargin(payload: number) {
     const isReadonly = this.draw.isReadonly()
     if (isReadonly) return

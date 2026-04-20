@@ -233,4 +233,8 @@ export class DOMEventHandlers {
       updatedPayload
     )
   }
+
+  static handleLineSpacing(value: number) {
+    DOMEventHandlers.getEditorInstance().command.executeLineSpacing(value)
+  }
 }

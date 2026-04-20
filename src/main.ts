@@ -283,13 +283,31 @@ window.onload = function () {
     '.menu-item__row-margin'
   )!
   const rowOptionDom = rowMarginDom.querySelector<HTMLDivElement>('.options')!
+  const customSpacingInput = rowOptionDom.querySelector<HTMLInputElement>(
+    '.custom-spacing__input'
+  )!
+  const customSpacingApply = rowOptionDom.querySelector<HTMLButtonElement>(
+    '.custom-spacing__apply'
+  )!
   rowMarginDom.onclick = function () {
-    console.log('row-margin')
     rowOptionDom.classList.toggle('visible')
   }
   rowOptionDom.onclick = function (evt) {
     const li = evt.target as HTMLLIElement
-    instance.command.executeRowMargin(Number(li.dataset.rowmargin!))
+    if (!li.dataset.rowmargin) return
+    instance.command.executeLineSpacing(Number(li.dataset.rowmargin))
+    rowOptionDom.classList.remove('visible')
+  }
+  customSpacingInput.onclick = function (evt) {
+    evt.stopPropagation()
+  }
+  customSpacingApply.onclick = function (evt) {
+    evt.stopPropagation()
+    const val = parseFloat(customSpacingInput.value)
+    if (!isNaN(val) && val >= 0.5 && val <= 10) {
+      instance.command.executeLineSpacing(val)
+      rowOptionDom.classList.remove('visible')
+    }
   }
 
   const listDom = document.querySelector<HTMLDivElement>('.menu-item__list')!
@@ -1326,8 +1344,12 @@ window.onload = function () {
       .forEach(li => li.classList.remove('active'))
     const curRowMarginDom = rowOptionDom.querySelector<HTMLLIElement>(
       `[data-rowmargin='${payload.rowMargin}']`
-    )!
-    curRowMarginDom.classList.add('active')
+    )
+    if (curRowMarginDom) {
+      curRowMarginDom.classList.add('active')
+    } else if (customSpacingInput) {
+      customSpacingInput.value = String(payload.rowMargin)
+    }
 
     // Function
     payload.undo

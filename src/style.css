@@ -304,6 +304,39 @@ ul {
   background-image: url('./assets/images/row-margin.svg');
 }
 
+.menu-item__row-margin .options {
+  width: 120px;
+}
+
+.custom-spacing {
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  border-top: 1px solid #e0e0e0;
+  gap: 4px;
+}
+
+.custom-spacing__input {
+  width: 60px;
+  padding: 2px 4px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.custom-spacing__apply {
+  padding: 2px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #f5f5f5;
+}
+
+.custom-spacing__apply:hover {
+  background: #e0e0e0;
+}
+
 .menu-item__list {
   position: relative;
 }
