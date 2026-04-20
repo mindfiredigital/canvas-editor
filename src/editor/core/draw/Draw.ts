@@ -1432,7 +1432,15 @@ export class Draw {
           curRow.width = availableWidth
         }
         // 段落间距: 上一段 marginBottom + 本段 marginTop
-        
+        let paragraphSpacingHeight = 0
+        if (i !== 0 && element.value === ZERO) {
+          if (preElement?.marginBottom) {
+            curRow.height += preElement.marginBottom * scale
+          }
+          if (element.marginTop) {
+            paragraphSpacingHeight = element.marginTop * scale
+          }
+        }
         const row: IRow = {
           width: metrics.width,
           height: height + paragraphSpacingHeight,
