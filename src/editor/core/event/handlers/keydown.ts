@@ -369,7 +369,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
       while (zeroIdx > 0 && !(elementList[zeroIdx].value === ZERO && elementList[zeroIdx].listId)) {
         zeroIdx--
       }
-      
+      const zeroEl = elementList[zeroIdx]
       if (zeroEl.listId) {
         const cur = zeroEl.listIndentLevel || 0
         if (evt.shiftKey) {
