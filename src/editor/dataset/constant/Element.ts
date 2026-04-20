@@ -41,6 +41,8 @@ export const EDITOR_ELEMENT_ZIP_ATTR: Array<keyof IElement> = [
   'strikeout',
   'rowFlex',
   'rowMargin',
+  'marginTop',
+  'marginBottom',
   'dashArray',
   'trList',
   'borderType',

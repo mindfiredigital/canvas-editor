@@ -31,6 +31,7 @@ export class Command {
   public executeRowFlex: CommandAdapt['rowFlex']
   public executeRowMargin: CommandAdapt['rowMargin']
   public executeLineSpacing: CommandAdapt['lineSpacing']
+  public executeParagraphSpacing: CommandAdapt['paragraphSpacing']
   public executeInsertTable: CommandAdapt['insertTable']
   public executeInsertTableTopRow: CommandAdapt['insertTableTopRow']
   public executeInsertTableBottomRow: CommandAdapt['insertTableBottomRow']
@@ -129,6 +130,7 @@ export class Command {
     this.executeRowFlex = adapt.rowFlex.bind(adapt)
     this.executeRowMargin = adapt.rowMargin.bind(adapt)
     this.executeLineSpacing = adapt.lineSpacing.bind(adapt)
+    this.executeParagraphSpacing = adapt.paragraphSpacing.bind(adapt)
     // 表格、图片上传、超链接、搜索、打印、图片操作
     this.executeInsertTable = adapt.insertTable.bind(adapt)
     this.executeInsertTableTopRow = adapt.insertTableTopRow.bind(adapt)

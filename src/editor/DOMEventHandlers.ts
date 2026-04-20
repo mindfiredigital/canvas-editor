@@ -237,4 +237,8 @@ export class DOMEventHandlers {
   static handleLineSpacing(value: number) {
     DOMEventHandlers.getEditorInstance().command.executeLineSpacing(value)
   }
+
+  static handleParagraphSpacing(before: number, after: number) {
+    DOMEventHandlers.getEditorInstance().command.executeParagraphSpacing(before, after)
+  }
 }

@@ -554,6 +554,29 @@ export class CommandAdapt {
     return this.rowMargin(payload)
   }
 
+  public paragraphSpacing(before: number, after: number) {
+    const isReadonly = this.draw.isReadonly()
+    if (isReadonly) return
+    const { startIndex, endIndex } = this.range.getRange()
+    if (!~startIndex && !~endIndex) return
+    const rangeRow = this.range.getRangeRow()
+    if (!rangeRow) return
+    const positionList = this.position.getPositionList()
+    const elementList = this.draw.getElementList()
+    for (let p = 0; p < positionList.length; p++) {
+      const position = positionList[p]
+      const rowSet = rangeRow.get(position.pageNo)
+      if (!rowSet) continue
+      if (rowSet.has(position.rowNo)) {
+        elementList[p].marginTop = before
+        elementList[p].marginBottom = after
+      }
+    }
+    const isSetCursor = startIndex === endIndex
+    const curIndex = isSetCursor ? endIndex : startIndex
+    this.draw.render({ curIndex, isSetCursor })
+  }
+
   public rowMargin(payload: number) {
     const isReadonly = this.draw.isReadonly()
     if (isReadonly) return

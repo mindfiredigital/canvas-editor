@@ -330,6 +330,8 @@ const EDITOR_ELEMENT_ZIP_ATTR = [
   "strikeout",
   "rowFlex",
   "rowMargin",
+  "marginTop",
+  "marginBottom",
   "dashArray",
   "trList",
   "borderType",
@@ -6755,6 +6757,8 @@ class RangeManager {
     const highlight = curElement.highlight || null;
     const rowFlex = curElement.rowFlex || null;
     const rowMargin = curElement.rowMargin || this.options.defaultRowMargin;
+    const marginTop = curElement.marginTop || 0;
+    const marginBottom = curElement.marginBottom || 0;
     const dashArray = curElement.dashArray || [];
     const level = curElement.level || null;
     const listType = curElement.listType || null;
@@ -6777,6 +6781,8 @@ class RangeManager {
       highlight,
       rowFlex,
       rowMargin,
+      marginTop,
+      marginBottom,
       dashArray,
       level,
       listType,
@@ -6824,6 +6830,8 @@ class RangeManager {
     const highlight = curElement.highlight || null;
     const rowFlex = curElement.rowFlex || null;
     const rowMargin = curElement.rowMargin || this.options.defaultRowMargin;
+    const marginTop = curElement.marginTop || 0;
+    const marginBottom = curElement.marginBottom || 0;
     const dashArray = curElement.dashArray || [];
     const level = curElement.level || null;
     const listType = curElement.listType || null;
@@ -6846,6 +6854,8 @@ class RangeManager {
       highlight,
       rowFlex,
       rowMargin,
+      marginTop,
+      marginBottom,
       dashArray,
       level,
       listType,
@@ -6884,6 +6894,8 @@ class RangeManager {
       highlight: null,
       rowFlex: null,
       rowMargin,
+      marginTop: 0,
+      marginBottom: 0,
       dashArray: [],
       level: null,
       listType: null,
@@ -11887,9 +11899,18 @@ class Draw {
           }
           curRow.width = availableWidth;
         }
+        let paragraphSpacingHeight = 0;
+        if (i !== 0 && element.value === ZERO) {
+          if (preElement == null ? void 0 : preElement.marginBottom) {
+            curRow.height += preElement.marginBottom * scale;
+          }
+          if (element.marginTop) {
+            paragraphSpacingHeight = element.marginTop * scale;
+          }
+        }
         const row = {
           width: metrics.width,
-          height,
+          height: height + paragraphSpacingHeight,
           startIndex: i,
           elementList: [rowElement],
           ascent,
@@ -12331,6 +12352,7 @@ class Command {
     __publicField(this, "executeRowFlex");
     __publicField(this, "executeRowMargin");
     __publicField(this, "executeLineSpacing");
+    __publicField(this, "executeParagraphSpacing");
     __publicField(this, "executeInsertTable");
     __publicField(this, "executeInsertTableTopRow");
     __publicField(this, "executeInsertTableBottomRow");
@@ -12423,6 +12445,7 @@ class Command {
     this.executeRowFlex = adapt.rowFlex.bind(adapt);
     this.executeRowMargin = adapt.rowMargin.bind(adapt);
     this.executeLineSpacing = adapt.lineSpacing.bind(adapt);
+    this.executeParagraphSpacing = adapt.paragraphSpacing.bind(adapt);
     this.executeInsertTable = adapt.insertTable.bind(adapt);
     this.executeInsertTableTopRow = adapt.insertTableTopRow.bind(adapt);
     this.executeInsertTableBottomRow = adapt.insertTableBottomRow.bind(adapt);
@@ -13135,6 +13158,32 @@ class CommandAdapt {
   }
   lineSpacing(payload) {
     return this.rowMargin(payload);
+  }
+  paragraphSpacing(before, after) {
+    const isReadonly = this.draw.isReadonly();
+    if (isReadonly)
+      return;
+    const { startIndex, endIndex } = this.range.getRange();
+    if (!~startIndex && !~endIndex)
+      return;
+    const rangeRow = this.range.getRangeRow();
+    if (!rangeRow)
+      return;
+    const positionList = this.position.getPositionList();
+    const elementList = this.draw.getElementList();
+    for (let p = 0; p < positionList.length; p++) {
+      const position = positionList[p];
+      const rowSet = rangeRow.get(position.pageNo);
+      if (!rowSet)
+        continue;
+      if (rowSet.has(position.rowNo)) {
+        elementList[p].marginTop = before;
+        elementList[p].marginBottom = after;
+      }
+    }
+    const isSetCursor = startIndex === endIndex;
+    const curIndex = isSetCursor ? endIndex : startIndex;
+    this.draw.render({ curIndex, isSetCursor });
   }
   rowMargin(payload) {
     const isReadonly = this.draw.isReadonly();
@@ -15977,6 +16026,9 @@ const _DOMEventHandlers = class {
   }
   static handleLineSpacing(value) {
     _DOMEventHandlers.getEditorInstance().command.executeLineSpacing(value);
+  }
+  static handleParagraphSpacing(before, after) {
+    _DOMEventHandlers.getEditorInstance().command.executeParagraphSpacing(before, after);
   }
 };
 let DOMEventHandlers = _DOMEventHandlers;
