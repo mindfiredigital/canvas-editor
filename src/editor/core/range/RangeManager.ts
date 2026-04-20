@@ -424,8 +424,7 @@ export class RangeManager {
       highlight: null,
       rowFlex: null,
       rowMargin,
-      marginTop: 0,
-      marginBottom: 0,
+    
       dashArray: [],
       level: null,
       listType: null,
