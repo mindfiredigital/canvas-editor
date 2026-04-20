@@ -358,7 +358,8 @@ const TITLE_CONTEXT_ATTR = ["level", "titleId"];
 const LIST_CONTEXT_ATTR = [
   "listId",
   "listType",
-  "listStyle"
+  "listStyle",
+  "listIndentLevel"
 ];
 const EDITOR_ELEMENT_CONTEXT_ATTR = [
   ...TABLE_CONTEXT_ATTR,
@@ -5250,11 +5251,24 @@ function keydown(evt, host) {
   } else if (evt.key === KeyMap.Enter) {
     if (isReadonly || isPartRangeInControlOutside)
       return;
+    const startElement = elementList[startIndex];
+    const endElement = elementList[endIndex];
+    if (isCollapsed && !activeControl && !evt.shiftKey && startElement.listId && startElement.value === ZERO) {
+      const nextEl = elementList[endIndex + 1];
+      if (!nextEl || nextEl.value === ZERO) {
+        delete startElement.listId;
+        delete startElement.listType;
+        delete startElement.listStyle;
+        delete startElement.listIndentLevel;
+        rangeManager.setRange(endIndex, endIndex);
+        draw.render({ curIndex: endIndex });
+        evt.preventDefault();
+        return;
+      }
+    }
     const enterText = {
       value: ZERO
     };
-    const startElement = elementList[startIndex];
-    const endElement = elementList[endIndex];
     if (evt.shiftKey && startElement.listId) {
       enterText.listWrap = true;
     }
@@ -5469,12 +5483,32 @@ function keydown(evt, host) {
     }
     evt.preventDefault();
   } else if (evt.key === KeyMap.TAB) {
-    draw.insertElementList([
-      {
-        type: ElementType.TAB,
-        value: ""
+    const tabElement = elementList[startIndex];
+    if (tabElement == null ? void 0 : tabElement.listId) {
+      let zeroIdx = startIndex;
+      while (zeroIdx > 0 && !(elementList[zeroIdx].value === ZERO && elementList[zeroIdx].listId)) {
+        zeroIdx--;
       }
-    ]);
+      const zeroEl = elementList[zeroIdx];
+      if (zeroEl.listId) {
+        const cur = zeroEl.listIndentLevel || 0;
+        if (evt.shiftKey) {
+          if (cur > 0)
+            zeroEl.listIndentLevel = cur - 1;
+        } else {
+          zeroEl.listIndentLevel = cur + 1;
+        }
+        rangeManager.setRange(startIndex, startIndex);
+        draw.render({ curIndex: startIndex });
+      }
+    } else {
+      draw.insertElementList([
+        {
+          type: ElementType.TAB,
+          value: ""
+        }
+      ]);
+    }
     evt.preventDefault();
   }
 }
@@ -10679,6 +10713,7 @@ class ListParticle {
     __publicField(this, "UN_COUNT_STYLE_WIDTH", 20);
     __publicField(this, "MEASURE_BASE_TEXT", "0");
     __publicField(this, "LIST_GAP", 10);
+    __publicField(this, "LIST_INDENT_INCREMENT", 40);
     this.options = draw.getOptions();
   }
   computeListStyle(ctx, elementList) {
@@ -10741,7 +10776,7 @@ class ListParticle {
     if (!text)
       return;
     const { coordinate: { leftTop: [startX, startY] } } = position;
-    const x = startX - offsetX;
+    const x = startX - (offsetX - (row.listIndentOffset || 0));
     const y = startY + ascent;
     const { defaultFont, defaultSize, scale } = this.options;
     ctx.save();
@@ -11566,6 +11601,7 @@ class Draw {
     }
     let listId;
     let listIndex = 0;
+    let curListItemIndentLevel = 0;
     for (let i = 0; i < elementList.length; i++) {
       const curRow = rowList[rowList.length - 1];
       const element = elementList[i];
@@ -11576,7 +11612,14 @@ class Draw {
         boundingBoxAscent: 0,
         boundingBoxDescent: 0
       };
-      const offsetX = element.listId ? listStyleMap.get(element.listId) || 0 : 0;
+      if (element.listId && element.value === ZERO && !element.listWrap) {
+        curListItemIndentLevel = element.listIndentLevel || 0;
+      } else if (!element.listId) {
+        curListItemIndentLevel = 0;
+      }
+      const baseOffsetX = element.listId ? listStyleMap.get(element.listId) || 0 : 0;
+      const listIndentOffset = element.listId ? curListItemIndentLevel * this.listParticle.LIST_INDENT_INCREMENT * scale : 0;
+      const offsetX = baseOffsetX + listIndentOffset;
       const availableWidth = innerWidth - offsetX;
       if (element.type === ElementType.IMAGE || element.type === ElementType.LATEX) {
         const elementWidth = element.width * scale;
@@ -11919,7 +11962,8 @@ class Draw {
         };
         if (element.listId) {
           row.isList = true;
-          row.offsetX = listStyleMap.get(element.listId);
+          row.offsetX = (listStyleMap.get(element.listId) || 0) + listIndentOffset;
+          row.listIndentOffset = listIndentOffset;
           row.listIndex = listIndex;
         }
         rowList.push(row);

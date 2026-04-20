@@ -15,6 +15,7 @@ export class ListParticle {
   private readonly UN_COUNT_STYLE_WIDTH = 20
   private readonly MEASURE_BASE_TEXT = '0'
   private readonly LIST_GAP = 10
+  public readonly LIST_INDENT_INCREMENT = 40
 
   constructor(draw: Draw) {
     this.options = draw.getOptions()
@@ -104,7 +105,7 @@ export class ListParticle {
         leftTop: [startX, startY]
       }
     } = position
-    const x = startX - offsetX!
+    const x = startX - (offsetX! - (row.listIndentOffset || 0))
     const y = startY + ascent
     const { defaultFont, defaultSize, scale } = this.options
     ctx.save()

@@ -983,6 +983,7 @@ export class Draw {
     // 列表位置
     let listId: string | undefined
     let listIndex = 0
+    let curListItemIndentLevel = 0
     for (let i = 0; i < elementList.length; i++) {
       const curRow: IRow = rowList[rowList.length - 1]
       const element = elementList[i]
@@ -994,8 +995,16 @@ export class Draw {
         boundingBoxAscent: 0,
         boundingBoxDescent: 0
       }
+      // track indent level from ZERO paragraph markers
+      if (element.listId && element.value === ZERO && !element.listWrap) {
+        curListItemIndentLevel = element.listIndentLevel || 0
+      } else if (!element.listId) {
+        curListItemIndentLevel = 0
+      }
       // 实际可用宽度
-      const offsetX = element.listId ? listStyleMap.get(element.listId) || 0 : 0
+      const baseOffsetX = element.listId ? listStyleMap.get(element.listId) || 0 : 0
+      const listIndentOffset = element.listId ? curListItemIndentLevel * this.listParticle.LIST_INDENT_INCREMENT * scale : 0
+      const offsetX = baseOffsetX + listIndentOffset
       const availableWidth = innerWidth - offsetX
       if (
         element.type === ElementType.IMAGE ||
@@ -1452,7 +1461,8 @@ export class Draw {
         }
         if (element.listId) {
           row.isList = true
-          row.offsetX = listStyleMap.get(element.listId!)
+          row.offsetX = (listStyleMap.get(element.listId!) || 0) + listIndentOffset
+          row.listIndentOffset = listIndentOffset
           row.listIndex = listIndex
         }
         rowList.push(row)

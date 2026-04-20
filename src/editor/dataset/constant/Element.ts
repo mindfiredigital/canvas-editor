@@ -72,7 +72,8 @@ export const TITLE_CONTEXT_ATTR: Array<keyof IElement> = ['level', 'titleId']
 export const LIST_CONTEXT_ATTR: Array<keyof IElement> = [
   'listId',
   'listType',
-  'listStyle'
+  'listStyle',
+  'listIndentLevel'
 ]
 
 export const EDITOR_ELEMENT_CONTEXT_ATTR: Array<keyof IElement> = [

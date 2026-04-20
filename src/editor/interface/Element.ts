@@ -46,6 +46,7 @@ export interface IListElement {
   listStyle?: ListStyle
   listId?: string
   listWrap?: boolean
+  listIndentLevel?: number
 }
 
 export interface ITableAttr {

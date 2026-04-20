@@ -84,11 +84,31 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
     draw.render({ curIndex })
   } else if (evt.key === KeyMap.Enter) {
     if (isReadonly || isPartRangeInControlOutside) return
+    const startElement = elementList[startIndex]
+    const endElement = elementList[endIndex]
+    // Ghost bullet fix: pressing Enter on an empty list item exits the list
+    if (
+      isCollapsed &&
+      !activeControl &&
+      !evt.shiftKey &&
+      startElement.listId &&
+      startElement.value === ZERO
+    ) {
+      const nextEl = elementList[endIndex + 1]
+      if (!nextEl || nextEl.value === ZERO) {
+        delete startElement.listId
+        delete startElement.listType
+        delete startElement.listStyle
+        delete startElement.listIndentLevel
+        rangeManager.setRange(endIndex, endIndex)
+        draw.render({ curIndex: endIndex })
+        evt.preventDefault()
+        return
+      }
+    }
     const enterText: IElement = {
       value: ZERO
     }
-    const startElement = elementList[startIndex]
-    const endElement = elementList[endIndex]
     // 列表块内换行
     if (evt.shiftKey && startElement.listId) {
       enterText.listWrap = true
@@ -341,12 +361,33 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
     }
     evt.preventDefault()
   } else if (evt.key === KeyMap.TAB) {
-    draw.insertElementList([
-      {
-        type: ElementType.TAB,
-        value: ''
+    // In a list: Tab increases indent, Shift+Tab decreases indent
+    const tabElement = elementList[startIndex]
+    if (tabElement?.listId) {
+      // Find the ZERO paragraph marker for the current list item
+      let zeroIdx = startIndex
+      while (zeroIdx > 0 && !(elementList[zeroIdx].value === ZERO && elementList[zeroIdx].listId)) {
+        zeroIdx--
       }
-    ])
+      const zeroEl = elementList[zeroIdx]
+      if (zeroEl.listId) {
+        const cur = zeroEl.listIndentLevel || 0
+        if (evt.shiftKey) {
+          if (cur > 0) zeroEl.listIndentLevel = cur - 1
+        } else {
+          zeroEl.listIndentLevel = cur + 1
+        }
+        rangeManager.setRange(startIndex, startIndex)
+        draw.render({ curIndex: startIndex })
+      }
+    } else {
+      draw.insertElementList([
+        {
+          type: ElementType.TAB,
+          value: ''
+        }
+      ])
+    }
     evt.preventDefault()
   }
 }

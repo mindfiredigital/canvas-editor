@@ -16,5 +16,6 @@ export interface IRow {
   isList?: boolean
   listIndex?: number
   offsetX?: number
+  listIndentOffset?: number
   elementList: IRowElement[]
 }
