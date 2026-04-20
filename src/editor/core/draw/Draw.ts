@@ -1461,7 +1461,7 @@ export class Draw {
         }
         if (element.listId) {
           row.isList = true
-          
+          row.offsetX = (listStyleMap.get(element.listId!) || 0) + listIndentOffset
           row.listIndentOffset = listIndentOffset
           row.listIndex = listIndex
         }
