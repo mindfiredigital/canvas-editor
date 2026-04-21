@@ -93,6 +93,7 @@ export class Command {
   public getSearchNavigateInfo: CommandAdapt['getSearchNavigateInfo']
   public getContentStyles: CommandAdapt['getContentStyles']
   public executeGlobalHyperlink: CommandAdapt['globalHyperlink']
+  public getHyperlinkRange: CommandAdapt['getHyperlinkRange']
 
   constructor(adapt: CommandAdapt) {
     // 全局命令
@@ -198,5 +199,6 @@ export class Command {
     this.getPaperMargin = adapt.getPaperMargin.bind(adapt)
     this.getSearchNavigateInfo = adapt.getSearchNavigateInfo.bind(adapt)
     this.getContentStyles = adapt.getContentStyles.bind(adapt)
+    this.getHyperlinkRange = adapt.getHyperlinkRange.bind(adapt)
   }
 }
