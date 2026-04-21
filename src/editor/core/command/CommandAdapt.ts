@@ -1,3 +1,4 @@
+import { Dialog } from '../../../components/dialog/Dialog'
 import { NBSP, WRAP, ZERO } from '../../dataset/constant/Common'
 import { EDITOR_ELEMENT_STYLE_ATTR } from '../../dataset/constant/Element'
 import { titleSizeMapping } from '../../dataset/constant/Title'
@@ -43,8 +44,7 @@ import {
   formatElementContext,
   formatElementList,
   isTextLikeElement,
-  pickElementAttr,
-  getElementListByHTML
+  pickElementAttr
 } from '../../utils/element'
 import { printImageBase64 } from '../../utils/print'
 import { Control } from '../draw/control/Control'
@@ -83,6 +83,10 @@ export class CommandAdapt {
     this.workerManager = draw.getWorkerManager()
     this.searchManager = draw.getSearch()
     this.i18n = draw.getI18n()
+  }
+
+  public getContentStyles() {
+    return this.range.getContentStyles()
   }
 
   public mode(payload: EditorMode) {
@@ -294,36 +298,57 @@ export class CommandAdapt {
     const isReadonly = this.draw.isReadonly()
     if (isReadonly) return
     const selection = this.range.getSelection()
-    if (!selection) return
-    const noBoldIndex = selection.findIndex(s => !s.bold)
-    selection.forEach(el => {
-      el.bold = !!~noBoldIndex
-    })
-    this.draw.render({ isSetCursor: false })
+    if (selection?.length) {
+      const noBoldIndex = selection.findIndex(s => !s.bold)
+      selection.forEach(el => {
+        el.bold = !!~noBoldIndex
+      })
+      this.draw.render({ isSetCursor: false })
+    } else {
+      const elementList = this.draw.getElementList()
+      const endIndex = elementList.length - 1
+      const enterElement = elementList[endIndex]
+      enterElement.bold = !enterElement.bold
+      this.draw.render({ curIndex: endIndex, isCompute: false })
+    }
   }
 
   public italic() {
     const isReadonly = this.draw.isReadonly()
     if (isReadonly) return
     const selection = this.range.getSelection()
-    if (!selection) return
-    const noItalicIndex = selection.findIndex(s => !s.italic)
-    selection.forEach(el => {
-      el.italic = !!~noItalicIndex
-    })
-    this.draw.render({ isSetCursor: false })
+    if (selection?.length) {
+      const noItalicIndex = selection.findIndex(s => !s.italic)
+      selection.forEach(el => {
+        el.italic = !!~noItalicIndex
+      })
+      this.draw.render({ isSetCursor: false })
+    } else {
+      const elementList = this.draw.getElementList()
+      const endIndex = elementList.length - 1
+      const enterElement = elementList[endIndex]
+      enterElement.italic = !enterElement.italic
+      this.draw.render({ curIndex: endIndex, isCompute: false })
+    }
   }
 
   public underline() {
     const isReadonly = this.draw.isReadonly()
     if (isReadonly) return
     const selection = this.range.getSelection()
-    if (!selection) return
-    const noUnderlineIndex = selection.findIndex(s => !s.underline)
-    selection.forEach(el => {
-      el.underline = !!~noUnderlineIndex
-    })
-    this.draw.render({ isSetCursor: false })
+    if (selection?.length) {
+      const noUnderlineIndex = selection.findIndex(s => !s.underline)
+      selection.forEach(el => {
+        el.underline = !!~noUnderlineIndex
+      })
+      this.draw.render({ isSetCursor: false })
+    } else {
+      const elementList = this.draw.getElementList()
+      const endIndex = elementList.length - 1
+      const enterElement = elementList[endIndex]
+      enterElement.underline = !enterElement.underline
+      this.draw.render({ curIndex: endIndex, isCompute: false })
+    }
   }
 
   public strikeout() {
@@ -434,13 +459,13 @@ export class CommandAdapt {
     const { startIndex, endIndex } = this.range.getRange()
     if (!~startIndex && !~endIndex) return
     const elementList = this.draw.getElementList()
-    // 需要改变的元素列表
+    // list of elements to change
     const changeElementList =
       startIndex === endIndex
         ? this.range.getRangeElementList()
         : elementList.slice(startIndex + 1, endIndex + 1)
     if (!changeElementList || !changeElementList.length) return
-    // 设置值
+    // Settings
     const titleId = getUUID()
     const titleOptions = this.draw.getOptions().title
     changeElementList.forEach(el => {
@@ -461,7 +486,7 @@ export class CommandAdapt {
         }
       }
     })
-    // 光标定位
+    // Cursor positioning
     const isSetCursor = startIndex === endIndex
     const curIndex = isSetCursor ? endIndex : startIndex
     this.draw.render({ curIndex, isSetCursor })
@@ -1248,6 +1273,155 @@ export class CommandAdapt {
     })
   }
 
+  public tableTdBorderBgTop(payload: string) {
+    const isReadonly = this.draw.isReadonly()
+    if (isReadonly) return
+    const positionContext = this.position.getPositionContext()
+    if (!positionContext.isTable) return
+    const { index, trIndex, tdIndex } = positionContext
+    const originalElementList = this.draw.getOriginalElementList()
+    const element = originalElementList[index!]
+    const curTd = element?.trList?.[trIndex!]?.tdList?.[tdIndex!]
+    if (!curTd || curTd.borderBgTop === payload) {
+      return
+    }
+    curTd.borderBgTop = payload
+    const { endIndex } = this.range.getRange()
+    this.draw.render({
+      curIndex: endIndex
+    })
+  }
+  public tableTdBorderBgBottom(payload: string) {
+    const isReadonly = this.draw.isReadonly()
+    if (isReadonly) return
+    const positionContext = this.position.getPositionContext()
+    if (!positionContext.isTable) return
+    const { index, trIndex, tdIndex } = positionContext
+    const originalElementList = this.draw.getOriginalElementList()
+    const element = originalElementList[index!]
+    const curTd = element?.trList?.[trIndex!]?.tdList?.[tdIndex!]
+    if (!curTd || curTd.borderBgBottom === payload) {
+      return
+    }
+    curTd.borderBgBottom = payload
+    const { endIndex } = this.range.getRange()
+    this.draw.render({
+      curIndex: endIndex
+    })
+  }
+
+  public tableTdBorderBgLeft(payload: string) {
+    const isReadonly = this.draw.isReadonly()
+    if (isReadonly) return
+    const positionContext = this.position.getPositionContext()
+    if (!positionContext.isTable) return
+    const { index, trIndex, tdIndex } = positionContext
+    const originalElementList = this.draw.getOriginalElementList()
+    const element = originalElementList[index!]
+    const curTd = element?.trList?.[trIndex!]?.tdList?.[tdIndex!]
+    if (!curTd || curTd.borderBgLeft === payload) {
+      return
+    }
+    curTd.borderBgLeft = payload
+    const { endIndex } = this.range.getRange()
+    this.draw.render({
+      curIndex: endIndex
+    })
+  }
+
+  public tableTdBorderBgRight(payload: string) {
+    const isReadonly = this.draw.isReadonly()
+    if (isReadonly) return
+    const positionContext = this.position.getPositionContext()
+    if (!positionContext.isTable) return
+    const { index, trIndex, tdIndex } = positionContext
+    const originalElementList = this.draw.getOriginalElementList()
+    const element = originalElementList[index!]
+    const curTd = element?.trList?.[trIndex!]?.tdList?.[tdIndex!]
+    if (!curTd || curTd.borderBgRight === payload) {
+      return
+    }
+    curTd.borderBgRight = payload
+    const { endIndex } = this.range.getRange()
+    this.draw.render({
+      curIndex: endIndex
+    })
+  }
+
+  public tableTdBorderWidthTop(payload: number) {
+    const isReadonly = this.draw.isReadonly()
+    if (isReadonly) return
+    const positionContext = this.position.getPositionContext()
+    if (!positionContext.isTable) return
+    const { index, trIndex, tdIndex } = positionContext
+    const originalElementList = this.draw.getOriginalElementList()
+    const element = originalElementList[index!]
+    const curTd = element?.trList?.[trIndex!]?.tdList?.[tdIndex!]
+    if (!curTd || curTd.borderWidthTop === payload) {
+      return
+    }
+    curTd.borderWidthTop = payload
+    const { endIndex } = this.range.getRange()
+    this.draw.render({
+      curIndex: endIndex
+    })
+  }
+
+  public tableTdBorderWidthLeft(payload: number) {
+    const isReadonly = this.draw.isReadonly()
+    if (isReadonly) return
+    const positionContext = this.position.getPositionContext()
+    if (!positionContext.isTable) return
+    const { index, trIndex, tdIndex } = positionContext
+    const originalElementList = this.draw.getOriginalElementList()
+    const element = originalElementList[index!]
+    const curTd = element?.trList?.[trIndex!]?.tdList?.[tdIndex!]
+    if (!curTd || curTd.borderWidthLeft === payload) {
+      return
+    }
+    curTd.borderWidthLeft = payload
+    const { endIndex } = this.range.getRange()
+    this.draw.render({
+      curIndex: endIndex
+    })
+  }
+
+  public tableTdBorderWidthBottom(payload: number) {
+    const isReadonly = this.draw.isReadonly()
+    if (isReadonly) return
+    const positionContext = this.position.getPositionContext()
+    if (!positionContext.isTable) return
+    const { index, trIndex, tdIndex } = positionContext
+    const originalElementList = this.draw.getOriginalElementList()
+    const element = originalElementList[index!]
+    const curTd = element?.trList?.[trIndex!]?.tdList?.[tdIndex!]
+    if (!curTd || curTd.borderWidthBottom === payload) {
+      return
+    }
+    curTd.borderWidthBottom = payload
+    const { endIndex } = this.range.getRange()
+    this.draw.render({
+      curIndex: endIndex
+    })
+  }
+  public tableTdBorderWidthRight(payload: number) {
+    const isReadonly = this.draw.isReadonly()
+    if (isReadonly) return
+    const positionContext = this.position.getPositionContext()
+    if (!positionContext.isTable) return
+    const { index, trIndex, tdIndex } = positionContext
+    const originalElementList = this.draw.getOriginalElementList()
+    const element = originalElementList[index!]
+    const curTd = element?.trList?.[trIndex!]?.tdList?.[tdIndex!]
+    if (!curTd || curTd.borderWidthRight === payload) {
+      return
+    }
+    curTd.borderWidthRight = payload
+    const { endIndex } = this.range.getRange()
+    this.draw.render({
+      curIndex: endIndex
+    })
+  }
   public hyperlink(payload: IElement) {
     const isReadonly = this.draw.isReadonly()
     if (isReadonly) return
@@ -1358,17 +1532,56 @@ export class CommandAdapt {
     })
   }
 
-  public editHyperlink(payload: string) {
-    // 获取超链接索引
+  public editHyperlink(url: string) {
+    // Get hyperlink index
     const hyperRange = this.getHyperlinkRange()
     if (!hyperRange) return
     const elementList = this.draw.getElementList()
     const [leftIndex, rightIndex] = hyperRange
-    // 替换url
+    // Get hyperlink text
+    let hyperlinkText = ''
     for (let i = leftIndex; i <= rightIndex; i++) {
-      const element = elementList[i]
-      element.url = payload
+      hyperlinkText += elementList[i].value
     }
+
+    new Dialog({
+      title: 'Link',
+      data: [
+        {
+          type: 'text',
+          label: 'Text',
+          name: 'name',
+          required: true,
+          placeholder: 'Enter text',
+          value: hyperlinkText ? hyperlinkText : ''
+        },
+        {
+          type: 'text',
+          label: 'URL',
+          name: 'url',
+          required: true,
+          placeholder: 'Enter URL',
+          value: url ? url : ''
+        }
+      ],
+      onConfirm: payload => {
+        const name = payload.find(p => p.name === 'name')?.value
+        if (!name) return
+        const url = payload.find(p => p.name === 'url')?.value
+        if (!url) return
+        this.deleteHyperlink()
+        this.hyperlink({
+          type: ElementType.HYPERLINK,
+          value: '',
+          url,
+          valueList: name.split('').map(n => ({
+            value: n,
+            size: 16
+          }))
+        })
+      }
+    })
+
     this.draw.getHyperlinkParticle().clearHyperlinkPopup()
     // 重置画布
     const { endIndex } = this.range.getRange()
@@ -1848,7 +2061,7 @@ export class CommandAdapt {
     let isApply = false
     for (let i = 0; i < elementList.length; i++) {
       const element = elementList[i]
-      // 删除空行、行首空格
+      // Delete blank lines and spaces at the beginning of lines
       if (element.value === ZERO) {
         while (i + 1 < elementList.length) {
           const nextElement = elementList[i + 1]
@@ -1859,7 +2072,7 @@ export class CommandAdapt {
       }
     }
     if (!isApply) {
-      // 避免输入框光标丢失
+      // Avoid input box cursor loss
       const isCollapsed = this.range.getIsCollapsed()
       this.draw.getCursor().drawCursor({
         isShow: isCollapsed
@@ -1871,20 +2084,42 @@ export class CommandAdapt {
     }
   }
 
-  public setHTML(payload: Partial<IEditorHTML>) {
-    const { header, main, footer } = payload
-    const innerWidth = this.draw.getOriginalInnerWidth()
-    // 不设置值时数据为undefined，避免覆盖当前数据
-    const getElementList = (htmlText?: string) =>
-      htmlText !== undefined
-        ? getElementListByHTML(htmlText, {
-            innerWidth
-          })
-        : undefined
-    this.setValue({
-      header: getElementList(header),
-      main: getElementList(main),
-      footer: getElementList(footer)
+  public globalHyperlink() {
+    const selectedText = this.getRangeText()
+    new Dialog({
+      title: 'Hyperlink',
+      data: [
+        {
+          type: 'text',
+          label: 'Text',
+          name: 'name',
+          required: true,
+          placeholder: 'Enter text',
+          value: selectedText ? selectedText : ''
+        },
+        {
+          type: 'text',
+          label: 'URL',
+          name: 'url',
+          required: true,
+          placeholder: 'Enter URL'
+        }
+      ],
+      onConfirm: payload => {
+        const name = payload.find(p => p.name === 'name')?.value
+        if (!name) return
+        const url = payload.find(p => p.name === 'url')?.value
+        if (!url) return
+        this.hyperlink({
+          type: ElementType.HYPERLINK,
+          value: '',
+          url,
+          valueList: name.split('').map(n => ({
+            value: n,
+            size: 16
+          }))
+        })
+      }
     })
   }
 }

@@ -1,5 +1,6 @@
 import { data, options } from './mock'
 import './style.css'
+// syntax highlishting
 import prism from 'prismjs'
 import Editor, {
   BlockType,
@@ -33,12 +34,12 @@ window.onload = function () {
     {
       header: [
         {
-          value: '第一人民医院',
+          value: `First People's Hospital`,
           size: 32,
           rowFlex: RowFlex.CENTER
         },
         {
-          value: '\n门诊病历',
+          value: '\nPatient medical records',
           size: 18,
           rowFlex: RowFlex.CENTER
         },
@@ -48,18 +49,16 @@ window.onload = function () {
         }
       ],
       main: <IElement[]>data,
-      footer: [
-        {
-          value: 'canvas-editor',
-          size: 12
-        }
-      ]
     },
     options
   )
-  console.log('实例: ', instance)
+  console.log('example: ', instance)
+  // cypress uses
   Reflect.set(window, 'editor', instance)
 
+  /**
+   * Close the menu option when a submenu is clicked.
+   */
   window.addEventListener(
     'click',
     evt => {
@@ -72,8 +71,11 @@ window.onload = function () {
     }
   )
 
+  //TOOLBAR OPERATIONS
+
+  // 2.| Undo | Redo | Format Painter | Clear Formatting |
   const undoDom = document.querySelector<HTMLDivElement>('.menu-item__undo')!
-  undoDom.title = `撤销(${isApple ? '⌘' : 'Ctrl'}+Z)`
+  undoDom.title = `Undo (${isApple ? '⌘' : 'Ctrl'}+Z)`
   undoDom.onclick = function () {
     console.log('undo')
     instance.command.executeUndo()
@@ -86,6 +88,7 @@ window.onload = function () {
     instance.command.executeRedo()
   }
 
+  // Usecase ??
   const painterDom = document.querySelector<HTMLDivElement>(
     '.menu-item__painter'
   )!
@@ -104,11 +107,11 @@ window.onload = function () {
 
   document.querySelector<HTMLDivElement>('.menu-item__format')!.onclick =
     function () {
-      console.log('format')
+      console.log('Clear formatting')
       instance.command.executeFormat()
     }
 
-  // 3. | 字体 | 字体变大 | 字体变小 | 加粗 | 斜体 | 下划线 | 删除线 | 上标 | 下标 | 字体颜色 | 背景色 |
+  // 3. | Font | Bigger Font | Smaller Font | Bold | Italic | Underline | Strikethrough | Superscript | Subscript | Font Color | Background Color |
   const fontDom = document.querySelector<HTMLDivElement>('.menu-item__font')!
   const fontSelectDom = fontDom.querySelector<HTMLDivElement>('.select')!
   const fontOptionDom = fontDom.querySelector<HTMLDivElement>('.options')!
@@ -302,7 +305,7 @@ window.onload = function () {
     instance.command.executeList(listType, listStyle)
   }
 
-  // 4. | 表格 | 图片 | 超链接 | 分割线 | 水印 | 代码块 | 分隔符 | 控件 | 复选框 | LaTeX | 日期选择器
+  // 4. | Table | Image | Hyperlink | Divider | Watermark | Code Block | Separator | Control | Checkbox | LaTeX | Date Picker
   const tableDom = document.querySelector<HTMLDivElement>('.menu-item__table')!
   const tablePanelContainer = document.querySelector<HTMLDivElement>(
     '.menu-item__table__collapse'
@@ -310,7 +313,7 @@ window.onload = function () {
   const tableClose = document.querySelector<HTMLDivElement>('.table-close')!
   const tableTitle = document.querySelector<HTMLDivElement>('.table-select')!
   const tablePanel = document.querySelector<HTMLDivElement>('.table-panel')!
-  // 绘制行列
+  // draw ranks
   const tableCellList: HTMLDivElement[][] = []
   for (let i = 0; i < 10; i++) {
     const tr = document.createElement('tr')
@@ -327,13 +330,13 @@ window.onload = function () {
   }
   let colIndex = 0
   let rowIndex = 0
-  // 移除所有格选择
+  // remove possessive selection
   function removeAllTableCellSelect() {
     tableCellList.forEach(tr => {
       tr.forEach(td => td.classList.remove('active'))
     })
   }
-  // 设置标题内容
+  // Set title content
   function setTableTitle(payload: string) {
     tableTitle.innerText = payload
   }
@@ -1186,24 +1189,20 @@ window.onload = function () {
     }
   }
 
-  // 7. 编辑器使用模式
+  // 7. Editor Modes
   let modeIndex = 0
   const modeList = [
     {
       mode: EditorMode.EDIT,
-      name: '编辑模式'
+      name: EditorMode.EDIT
     },
     {
       mode: EditorMode.CLEAN,
-      name: '清洁模式'
+      name: EditorMode.CLEAN
     },
     {
       mode: EditorMode.READONLY,
-      name: '只读模式'
-    },
-    {
-      mode: EditorMode.FORM,
-      name: '表单模式'
+      name: EditorMode.READONLY
     }
   ]
   const modeElement = document.querySelector<HTMLDivElement>('.editor-mode')!
@@ -1305,7 +1304,7 @@ window.onload = function () {
       highlightSpanDom.style.backgroundColor = '#ffff00'
     }
 
-    // 行布局
+    // row layout
     leftDom.classList.remove('active')
     centerDom.classList.remove('active')
     rightDom.classList.remove('active')
@@ -1320,7 +1319,7 @@ window.onload = function () {
       leftDom.classList.add('active')
     }
 
-    // 行间距
+    // Line space
     rowOptionDom
       .querySelectorAll<HTMLLIElement>('li')
       .forEach(li => li.classList.remove('active'))
@@ -1329,7 +1328,7 @@ window.onload = function () {
     )!
     curRowMarginDom.classList.add('active')
 
-    // 功能
+    // Function
     payload.undo
       ? undoDom.classList.remove('no-allow')
       : undoDom.classList.add('no-allow')
@@ -1340,7 +1339,7 @@ window.onload = function () {
       ? painterDom.classList.add('active')
       : painterDom.classList.remove('active')
 
-    // 标题
+    // Title
     titleOptionDom
       .querySelectorAll<HTMLLIElement>('li')
       .forEach(li => li.classList.remove('active'))
@@ -1355,7 +1354,7 @@ window.onload = function () {
       titleOptionDom.querySelector('li:first-child')!.classList.add('active')
     }
 
-    // 列表
+    // Lists
     listOptionDom
       .querySelectorAll<HTMLLIElement>('li')
       .forEach(li => li.classList.remove('active'))
@@ -1411,7 +1410,7 @@ window.onload = function () {
       'control',
       'checkbox'
     ]
-    // 菜单操作权限
+    // Menu Control
     disableMenusInControlContext.forEach(menu => {
       const menuDom = document.querySelector<HTMLDivElement>(
         `.menu-item__${menu}`
@@ -1438,7 +1437,7 @@ window.onload = function () {
     document.querySelector<HTMLSpanElement>('.word-count')!.innerText = `${
       wordCount || 0
     }`
-    // 目录
+    // Table of contents
     if (isCatalogShow) {
       updateCatalog()
     }
@@ -1450,10 +1449,10 @@ window.onload = function () {
     console.log('elementList: ', payload)
   }
 
-  // 9. 右键菜单注册
+  // 9. Register right click menu
   instance.register.contextMenuList([
     {
-      name: '签名',
+      name: 'Signature',
       icon: 'signature',
       when: payload => {
         return !payload.isReadonly && payload.editorTextFocus
@@ -1477,7 +1476,7 @@ window.onload = function () {
       }
     },
     {
-      name: '格式整理',
+      name: 'Format',
       icon: 'word-tool',
       when: payload => {
         return !payload.isReadonly
@@ -1488,7 +1487,7 @@ window.onload = function () {
     }
   ])
 
-  // 10. 快捷键注册
+  // 10. Shortcut registration
   instance.register.shortcutList([
     {
       key: KeyMap.P,

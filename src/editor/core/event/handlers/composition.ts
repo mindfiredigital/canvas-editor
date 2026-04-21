@@ -7,9 +7,9 @@ function compositionstart(host: CanvasEvent) {
 
 function compositionend(host: CanvasEvent, evt: CompositionEvent) {
   host.isComposing = false
-  // 处理输入框关闭
+  // Handle input box closing
   const draw = host.getDraw()
-  // 不存在值：删除合成输入
+  // Nonexistent value: remove synthetic input
   if (!evt.data) {
     removeComposingInput(host)
     const rangeManager = draw.getRange()

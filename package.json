@@ -1,8 +1,8 @@
 {
-  "name": "@hufe921/canvas-editor",
-  "author": "Hufe",
+  "name": "@mindfiredigital/canvas-editor",
+  "author": "Mindfire Digital LLP",
   "license": "MIT",
-  "version": "0.9.43",
+  "version": "0.0.0-development",
   "description": "rich text editor by canvas/svg",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
@@ -18,10 +18,10 @@
   "typings": "./dist/src/editor/index.d.ts",
   "main": "./dist/canvas-editor.umd.js",
   "module": "./dist/canvas-editor.es.js",
-  "homepage": "https://github.com/Hufe921/canvas-editor",
+  "homepage": "https://github.com/mindfiredigital/canvas-editor",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Hufe921/canvas-editor.git"
+    "url": "https://github.com/mindfiredigital/canvas-editor"
   },
   "keywords": [
     "canvas-editor",
@@ -45,8 +45,7 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "postinstall": "simple-git-hooks",
-    "release": "node scripts/release.js"
+    "prepare": "npx simple-git-hooks"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^10.0.1",
@@ -57,7 +56,7 @@
     "cypress": "^9.5.1",
     "cypress-file-upload": "^5.0.8",
     "eslint": "7.32.0",
-    "simple-git-hooks": "^2.8.1",
+    "simple-git-hooks": "^2.13.1",
     "typescript": "^4.3.2",
     "vite": "^2.4.2",
     "vite-plugin-css-injected-by-js": "^2.1.1",
@@ -68,7 +67,13 @@
     "prismjs": "^1.27.0"
   },
   "simple-git-hooks": {
-    "pre-commit": "npm run lint && npm run type:check",
+    "pre-commit": "npm run lint",
     "commit-msg": "node scripts/verifyCommit.js"
+  },
+  "release": {
+    "repositoryUrl": "https://github.com/mindfiredigital/canvas-editor.git",
+    "branches": [
+      "main"
+    ]
   }
 }

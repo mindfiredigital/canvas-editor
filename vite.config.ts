@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => {
         },
         rollupOptions: {
           output: {
-            sourcemap: true
+            sourcemap: false
           }
         }
       }

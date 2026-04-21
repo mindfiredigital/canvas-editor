@@ -2,13 +2,14 @@ import { EditorZone } from '../../..'
 import { ZERO } from '../../../dataset/constant/Common'
 import { ElementType } from '../../../dataset/enum/Element'
 import { KeyMap } from '../../../dataset/enum/KeyMap'
-import { MoveDirection } from '../../../dataset/enum/Observer'
 import { IElement, IElementPosition } from '../../../interface/Element'
 import { formatElementContext } from '../../../utils/element'
 import { isMod } from '../../../utils/hotkey'
 import { CanvasEvent } from '../CanvasEvent'
 
 export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
+  console.log('keydown')
+  
   if (host.isComposing) return
   const draw = host.getDraw()
   const position = draw.getPosition()
@@ -22,7 +23,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
   const rangeManager = draw.getRange()
   const { startIndex, endIndex } = rangeManager.getRange()
   const isCollapsed = startIndex === endIndex
-  // 当前激活控件
+  // currently active control
   const control = draw.getControl()
   const isPartRangeInControlOutside = control.isPartRangeInControlOutside()
   const activeControl = control.getActiveControl()
@@ -32,12 +33,12 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
     if (activeControl) {
       curIndex = control.keydown(evt)
     } else {
-      // 判断是否允许删除
+      // Determine whether to allow deletion
       if (isCollapsed && elementList[index].value === ZERO && index === 0) {
         evt.preventDefault()
         return
       }
-      //  清空当前行对齐方式
+      //  Clear the current row alignment
       const startElement = elementList[startIndex]
       if (isCollapsed && startElement.rowFlex && startElement.value === ZERO) {
         const rowList = draw.getRowList()
@@ -222,7 +223,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
     ) {
       return
     }
-    // 查找下一行位置列表
+    // 查找下一行信息
     const probablePosition: IElementPosition[] = []
     if (isUp) {
       let p = index - 1
@@ -271,9 +272,10 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
       break
     }
     if (!nextIndex) return
+    const curIndex = nextIndex
     // shift则缩放选区
-    let anchorStartIndex = nextIndex
-    let anchorEndIndex = nextIndex
+    let anchorStartIndex = curIndex
+    let anchorEndIndex = curIndex
     if (evt.shiftKey) {
       if (startIndex !== endIndex) {
         if (startIndex === cursorPosition.index) {
@@ -300,11 +302,6 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
       isSetCursor: isCollapsed,
       isSubmitHistory: false,
       isCompute: false
-    })
-    // 将光标移动到可视范围内
-    draw.getCursor().moveCursorToVisible({
-      cursorPosition: positionList[isUp ? anchorStartIndex : anchorEndIndex],
-      direction: isUp ? MoveDirection.UP : MoveDirection.DOWN
     })
   } else if (isMod(evt) && evt.key === KeyMap.Z) {
     if (isReadonly) return

@@ -59,11 +59,13 @@ import { Plugin } from './core/plugin/Plugin'
 import { UsePlugin } from './interface/Plugin'
 import { EventBus } from './core/event/eventbus/EventBus'
 import { EventBusMap } from './interface/EventBus'
+import { DOMEventHandlers } from './DOMEventHandlers'
+import { IRangeStyle } from './interface/Listener'
 
 export default class Editor {
   public command: Command
   public listener: Listener
-  public eventBus: EventBus<EventBusMap>
+  public eventBus!: EventBus<EventBusMap>
   public register: Register
   public destroy: () => void
   public use: UsePlugin
@@ -113,7 +115,7 @@ export default class Editor {
     const editorOptions: DeepRequired<IEditorOption> = {
       mode: EditorMode.EDIT,
       defaultType: 'TEXT',
-      defaultFont: 'Yahei',
+      defaultFont: 'Arial',
       defaultSize: 16,
       minSize: 5,
       maxSize: 72,
@@ -160,7 +162,7 @@ export default class Editor {
       title: titleOptions,
       placeholder: placeholderOptions
     }
-    // 数据处理
+    // data processing
     let headerElementList: IElement[] = []
     let mainElementList: IElement[] = []
     let footerElementList: IElement[] = []
@@ -183,9 +185,8 @@ export default class Editor {
     })
     // 监听
     this.listener = new Listener()
-    // 事件
     this.eventBus = new EventBus<EventBusMap>()
-    // 启动
+    // start up
     const draw = new Draw(
       container,
       editorOptions,
@@ -197,31 +198,31 @@ export default class Editor {
       this.listener,
       this.eventBus
     )
-    // 命令
+    // Order
     this.command = new Command(new CommandAdapt(draw))
-    // 菜单
+    // menu
     const contextMenu = new ContextMenu(draw, this.command)
-    // 快捷键
+    // hotkeys
     const shortcut = new Shortcut(draw, this.command)
-    // 注册
+    // register
     this.register = new Register({
       contextMenu,
       shortcut,
       i18n: draw.getI18n()
     })
-    // 注册销毁方法
+    // Register destroy method
     this.destroy = () => {
       draw.destroy()
       shortcut.removeEvent()
       contextMenu.removeEvent()
     }
-    // 插件
+    // plugin
     const plugin = new Plugin(this)
     this.use = plugin.use.bind(plugin)
   }
 }
 
-// 对外对象
+// External object
 export {
   Editor,
   RowFlex,
@@ -244,7 +245,8 @@ export {
   TitleLevel,
   ListType,
   ListStyle,
-  WordBreak
+  WordBreak,
+  DOMEventHandlers
 }
 
 // 对外类型
@@ -260,5 +262,6 @@ export type {
   IBlock,
   ILang,
   ICatalog,
-  ICatalogItem
+  ICatalogItem,
+  IRangeStyle,
 }

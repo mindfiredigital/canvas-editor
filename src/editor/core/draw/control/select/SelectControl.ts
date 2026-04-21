@@ -76,6 +76,8 @@ export class SelectControl implements IControlInstance {
   }
 
   public keydown(evt: KeyboardEvent): number {
+    console.log('keydown2')
+    
     const elementList = this.control.getElementList()
     const range = this.control.getRange()
     // 收缩边界到Value内
