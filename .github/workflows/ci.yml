@@ -10,6 +10,10 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v4
@@ -21,10 +25,20 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run lib
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run lib
 
       - name: Semantic Release
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: npx semantic-release@22.0.0
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
