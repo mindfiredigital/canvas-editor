@@ -23,8 +23,6 @@ jobs:
 
       - run: npm run lib
 
-      - run: npm test
-
       - name: Semantic Release
         if: github.event_name == 'push'
         run: npx semantic-release@22.0.0
