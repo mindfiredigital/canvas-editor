@@ -28,7 +28,6 @@ window.onload = function () {
   const isApple =
     typeof navigator !== 'undefined' && /Mac OS X/.test(navigator.userAgent)
 
-  // 1. Initialize the editor
   const container = document.querySelector<HTMLDivElement>('.editor')!
   const instance = new Editor(
     container,
