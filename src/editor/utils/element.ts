@@ -490,6 +490,10 @@ export function zipElementList(payload: IElement[]): IElement[] {
             if (td.borderBgLeft) {
               zipTd.borderBgLeft = td.borderBgLeft
             }
+            zipTd.borderWidthTop = td.borderWidthTop
+            zipTd.borderWidthBottom = td.borderWidthBottom
+            zipTd.borderWidthRight = td.borderWidthRight
+            zipTd.borderWidthLeft = td.borderWidthLeft
             tr.tdList[d] = zipTd
           }
         }
@@ -730,7 +734,7 @@ export function createDomFromElementList(
           const tr = trList[t]
           for (let d = 0; d < tr.tdList.length; d++) {
             const tdDom = document.createElement('td')
-            tdDom.style.border = '1px solid'
+            tdDom.style.border = '0px solid'
             const td = tr.tdList[d]
             tdDom.colSpan = td.colspan
             tdDom.rowSpan = td.rowspan
