@@ -988,6 +988,14 @@ export class Draw {
       const element = elementList[i]
       const rowMargin =
         defaultBasicRowMarginHeight * (element.rowMargin || defaultRowMargin)
+      // Paragraph spacing only applies to paragraph-start markers (ZERO)
+      const isParaStart = element.value === ZERO
+      const paragraphSpacingBefore = isParaStart
+        ? (element.paragraphSpacingBefore || 0) * scale
+        : 0
+      const paragraphSpacingAfter = isParaStart
+        ? (element.paragraphSpacingAfter || 0) * scale
+        : 0
       const metrics: IElementMetrics = {
         width: 0,
         height: 0,
@@ -1346,13 +1354,15 @@ export class Draw {
         (element.imgDisplay !== ImageDisplay.INLINE &&
           element.type === ElementType.IMAGE) ||
         element.type === ElementType.LATEX
-          ? metrics.height + rowMargin
-          : metrics.boundingBoxAscent + rowMargin
+          ? metrics.height + rowMargin + paragraphSpacingBefore
+          : metrics.boundingBoxAscent + rowMargin + paragraphSpacingBefore
       const height =
         rowMargin +
+        paragraphSpacingBefore +
         metrics.boundingBoxAscent +
         metrics.boundingBoxDescent +
-        rowMargin
+        rowMargin +
+        paragraphSpacingAfter
       const rowElement: IRowElement = Object.assign(element, {
         metrics,
         style: this._getFont(element, scale)
