@@ -30,6 +30,8 @@ export interface IElementStyle {
   rowFlex?: RowFlex
   rowMargin?: number
   letterSpacing?: number
+  paragraphSpacingBefore?: number
+  paragraphSpacingAfter?: number
 }
 
 export interface ITitleElement {
