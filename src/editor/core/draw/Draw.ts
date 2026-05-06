@@ -1731,40 +1731,40 @@ export class Draw {
     let { curIndex } = payload || {}
     const innerWidth = this.getInnerWidth()
     const isPagingMode = this.getIsPagingMode()
-    // 计算文档信息
+    // Calculate Document Information
     if (isCompute) {
       if (isPagingMode) {
-        // 页眉信息
+        // Header Information
         if (!header.disabled) {
           this.header.compute()
         }
-        // 页脚信息
+        // Footer Information
         if (!footer.disabled) {
           this.footer.compute()
         }
       }
-      // 行信息
+      // Row Information
       this.rowList = this.computeRowList(innerWidth, this.elementList)
-      // 页面信息
+      // Page Information
       this.pageRowList = this._computePageList()
-      // 位置信息
+      // Position Information
       this.position.computePositionList()
-      // 搜索信息
+      // Search Information
       const searchKeyword = this.search.getSearchKeyword()
       if (searchKeyword) {
         this.search.compute(searchKeyword)
       }
     }
-    // 清除光标等副作用
+    // Clear cursor and other side effects
     this.imageObserver.clearAll()
     this.cursor.recoveryCursor()
-    // 创建纸张
+    // Create pages
     for (let i = 0; i < this.pageRowList.length; i++) {
       if (!this.pageList[i]) {
         this._createPage(i)
       }
     }
-    // 移除多余页
+    // Remove Redundant Pages
     const curPageCount = this.pageRowList.length
     const prePageCount = this.pageList.length
     if (prePageCount > curPageCount) {
@@ -1774,15 +1774,15 @@ export class Draw {
         .splice(curPageCount, deleteCount)
         .forEach(page => page.remove())
     }
-    // 绘制元素
-    // 连续页因为有高度的变化会导致canvas渲染空白，需立即渲染，否则会出现闪动
+    // Drawing Elements
+    // Due to height variations in consecutive pages, the canvas may render blank; immediate rendering is required to prevent flickering.
     if (isLazy && isPagingMode) {
       this._lazyRender()
     } else {
       this._immediateRender()
     }
     const positionContext = this.position.getPositionContext()
-    // 光标重绘
+    // Cursor Redraw
     if (isSetCursor) {
       const positionList = this.position.getPositionList()
       if (positionContext.isTable) {
@@ -1802,7 +1802,7 @@ export class Draw {
       }
       this.cursor.drawCursor()
     }
-    // 历史记录用于undo、redo
+    // The history log is used for undo and redo operations.
     if (isSubmitHistory) {
       const self = this
       const oldElementList = deepClone(this.elementList)
@@ -1823,24 +1823,24 @@ export class Draw {
         self.render({ curIndex, isSubmitHistory: false })
       })
     }
-    // 信息变动回调
+    // Information Change Callback
     nextTick(() => {
-      // 表格工具重新渲染
+      // Table Tool Redraw
       if (isCompute && !this.isReadonly() && positionContext.isTable) {
         this.tableTool.render()
       }
-      // 页眉指示器重新渲染
+      // Header Indicator Redraw
       if (isCompute && !this.zone.isMainActive()) {
         this.zone.drawZoneIndicator()
       }
-      // 页面尺寸改变
+      // Page Size Change
       if (this.listener.pageSizeChange) {
         this.listener.pageSizeChange(this.pageRowList.length)
       }
       if (this.eventBus.isSubscribe('pageSizeChange')) {
         this.eventBus.emit('pageSizeChange', this.pageRowList.length)
       }
-      // 文档内容改变
+      // Document Content Change
       if (isSubmitHistory && !isInit) {
         if (this.listener.contentChange) {
           this.listener.contentChange()
