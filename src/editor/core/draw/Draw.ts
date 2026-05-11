@@ -18,7 +18,8 @@ import {
   IElement,
   IElementMetrics,
   IElementFillRect,
-  IElementStyle
+  IElementStyle,
+  IElementPosition
 } from '../../interface/Element'
 import { IRow, IRowElement } from '../../interface/Row'
 import { deepClone, getUUID, nextTick } from '../../utils'
@@ -81,6 +82,8 @@ import { Placeholder } from './frame/Placeholder'
 import { WORD_LIKE_REG } from '../../dataset/constant/Regular'
 import { EventBus } from '../event/eventbus/EventBus'
 import { EventBusMap } from '../../interface/EventBus'
+import { ITr } from '../../interface/table/Tr'
+import { ITd } from '../../interface/table/Td'
 
 export class Draw {
   private container: HTMLDivElement
@@ -554,7 +557,7 @@ export class Draw {
     ...items: IElement[]
   ) {
     if (deleteCount > 0) {
-      // 当最后元素与开始元素列表信息不一致时：清除当前列表信息
+      // When the last element does not match the list information of the beginning element: Clear the current list information.
       const endIndex = start + deleteCount
       const endElement = elementList[endIndex]
       const endElementListId = endElement?.listId
@@ -965,7 +968,6 @@ export class Draw {
     const defaultBasicRowMarginHeight = this.getDefaultBasicRowMarginHeight()
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
-    // 计算列表偏移宽度
     const listStyleMap = this.listParticle.computeListStyle(ctx, elementList)
     const rowList: IRow[] = []
     if (elementList.length) {
@@ -978,11 +980,11 @@ export class Draw {
         rowFlex: elementList?.[1]?.rowFlex
       })
     }
-    // 列表位置
     let listId: string | undefined
     let listIndex = 0
+
     for (let i = 0; i < elementList.length; i++) {
-      const curRow: IRow = rowList[rowList.length - 1]
+      const currentRow: IRow = rowList[rowList.length - 1]
       const element = elementList[i]
       const rowMargin =
         defaultBasicRowMarginHeight * (element.rowMargin || defaultRowMargin)
@@ -992,25 +994,27 @@ export class Draw {
         boundingBoxAscent: 0,
         boundingBoxDescent: 0
       }
-      // 实际可用宽度
-      const offsetX = element.listId ? listStyleMap.get(element.listId) || 0 : 0
-      const availableWidth = innerWidth - offsetX
+      const listOffsetX = element.listId
+        ? listStyleMap.get(element.listId) || 0
+        : 0
+      const availableRowWidth = innerWidth - listOffsetX
+
       if (
         element.type === ElementType.IMAGE ||
         element.type === ElementType.LATEX
       ) {
         const elementWidth = element.width! * scale
         const elementHeight = element.height! * scale
-        // 图片超出尺寸后自适应
-        const curRowWidth =
-          element.imgDisplay === ImageDisplay.INLINE ? 0 : curRow.width
-        if (curRowWidth + elementWidth > availableWidth) {
-          // 计算剩余大小
-          const surplusWidth = availableWidth - curRowWidth
+        const baseWidth =
+          element.imgDisplay === ImageDisplay.INLINE ? 0 : currentRow.width
+        const exceedsRowWidth = baseWidth + elementWidth > availableRowWidth
+
+        if (exceedsRowWidth) {
+          const surplusWidth = availableRowWidth - baseWidth
           const adaptiveWidth =
             surplusWidth > 0
               ? surplusWidth
-              : Math.min(elementWidth, availableWidth)
+              : Math.min(elementWidth, availableRowWidth)
           element.width = adaptiveWidth
           element.height = (elementHeight * adaptiveWidth) / elementWidth
           metrics.width = element.width
@@ -1024,76 +1028,77 @@ export class Draw {
         metrics.boundingBoxAscent = 0
       } else if (element.type === ElementType.TABLE) {
         const tdGap = tdPadding * 2
-        // 计算表格行列
         this.tableParticle.computeRowColInfo(element)
-        // 计算表格内元素信息
         const trList = element.trList!
-        for (let t = 0; t < trList.length; t++) {
-          const tr = trList[t]
-          for (let d = 0; d < tr.tdList.length; d++) {
-            const td = tr.tdList[d]
-            const rowList = this.computeRowList(
+
+        for (let trIndex = 0; trIndex < trList.length; trIndex++) {
+          const tr = trList[trIndex]
+          for (let tdIndex = 0; tdIndex < tr.tdList.length; tdIndex++) {
+            const td = tr.tdList[tdIndex]
+            const tdRowList = this.computeRowList(
               (td.width! - tdGap) * scale,
               td.value
             )
-            const rowHeight = rowList.reduce((pre, cur) => pre + cur.height, 0)
-            td.rowList = rowList
-            // 移除缩放导致的行高变化-渲染时会进行缩放调整
+            const rowHeight = tdRowList.reduce(
+              (pre, cur) => pre + cur.height,
+              0
+            )
+            td.rowList = tdRowList
             const curTdHeight = (rowHeight + tdGap) / scale
-            // 内容高度大于当前单元格高度需增加
+
             if (td.height! < curTdHeight) {
               const extraHeight = curTdHeight - td.height!
-              const changeTr = trList[t + td.rowspan - 1]
-              changeTr.height += extraHeight
-              changeTr.tdList.forEach(changeTd => {
-                changeTd.height! += extraHeight
+              const targetTr = trList[trIndex + td.rowspan - 1]
+              targetTr.height += extraHeight
+              targetTr.tdList.forEach(targetTd => {
+                targetTd.height! += extraHeight
               })
             }
-            // 当前单元格最小高度及真实高度（包含跨列）
+
             let curTdMinHeight = 0
             let curTdRealHeight = 0
-            let i = 0
-            while (i < td.rowspan) {
-              const curTr = trList[i + t]
+            let spanIndex = 0
+            while (spanIndex < td.rowspan) {
+              const curTr = trList[spanIndex + trIndex]
               curTdMinHeight += curTr.minHeight!
               curTdRealHeight += curTr.height!
-              i++
+              spanIndex++
             }
             td.realMinHeight = curTdMinHeight
             td.realHeight = curTdRealHeight
             td.mainHeight = curTdHeight
           }
         }
-        // 单元格高度大于实际内容高度需减少
-        const reduceTrList = this.tableParticle.getTrListGroupByCol(trList)
-        for (let t = 0; t < reduceTrList.length; t++) {
-          const tr = reduceTrList[t]
+
+        const trListGroupedByCol =
+          this.tableParticle.getTrListGroupByCol(trList)
+        for (let trIndex = 0; trIndex < trListGroupedByCol.length; trIndex++) {
+          const tr = trListGroupedByCol[trIndex]
           let reduceHeight = -1
-          for (let d = 0; d < tr.tdList.length; d++) {
-            const td = tr.tdList[d]
+
+          for (let tdIndex = 0; tdIndex < tr.tdList.length; tdIndex++) {
+            const td = tr.tdList[tdIndex]
             const curTdRealHeight = td.realHeight!
             const curTdHeight = td.mainHeight!
             const curTdMinHeight = td.realMinHeight!
-            // 获取最大可减少高度
-            const curReduceHeight =
+            const candidateReduceHeight =
               curTdHeight < curTdMinHeight
                 ? curTdRealHeight - curTdMinHeight
                 : curTdRealHeight - curTdHeight
-            if (!~reduceHeight || curReduceHeight < reduceHeight) {
-              reduceHeight = curReduceHeight
+            if (!~reduceHeight || candidateReduceHeight < reduceHeight) {
+              reduceHeight = candidateReduceHeight
             }
           }
-          if (reduceHeight > 0) {
-            const changeTr = trList[t]
-            changeTr.height -= reduceHeight
-            changeTr.tdList.forEach(changeTd => {
-              changeTd.height! -= reduceHeight
-            })
-          }
+
+          if (reduceHeight <= 0) continue
+          const targetTr = trList[trIndex]
+          targetTr.height -= reduceHeight
+          targetTr.tdList.forEach(targetTd => {
+            targetTd.height! -= reduceHeight
+          })
         }
-        // 需要重新计算表格内值
+
         this.tableParticle.computeRowColInfo(element)
-        // 计算出表格高度
         const tableHeight = trList.reduce((pre, cur) => pre + cur.height, 0)
         const tableWidth = element.colgroup!.reduce(
           (pre, cur) => pre + cur.width,
@@ -1101,75 +1106,98 @@ export class Draw {
         )
         element.width = tableWidth
         element.height = tableHeight
-        const elementWidth = tableWidth * scale
-        const elementHeight = tableHeight * scale
-        metrics.width = elementWidth
-        metrics.height = elementHeight
-        metrics.boundingBoxDescent = elementHeight
+        metrics.width = tableWidth * scale
+        metrics.height = tableHeight * scale
+        metrics.boundingBoxDescent = metrics.height
         metrics.boundingBoxAscent = 0
-        // 表格分页处理(拆分表格)
-        const height = this.getHeight()
+
+        const pageHeight = this.getHeight()
         const marginHeight = this.getMainOuterHeight()
-        let curPagePreHeight = marginHeight
-        for (let r = 0; r < rowList.length; r++) {
-          const row = rowList[r]
+        let accumulatedPageHeight = marginHeight
+        for (let rowIndex = 0; rowIndex < rowList.length; rowIndex++) {
+          const row = rowList[rowIndex]
+          const isPageBreakBefore = rowList[rowIndex - 1]?.isPageBreak
           if (
-            row.height + curPagePreHeight > height ||
-            rowList[r - 1]?.isPageBreak
+            row.height + accumulatedPageHeight > pageHeight ||
+            isPageBreakBefore
           ) {
-            curPagePreHeight = marginHeight + row.height
+            accumulatedPageHeight = marginHeight + row.height
           } else {
-            curPagePreHeight += row.height
+            accumulatedPageHeight += row.height
           }
         }
-        // 表格高度超过页面高度
-        const rowMarginHeight = rowMargin * 2 * scale
-        if (curPagePreHeight + rowMarginHeight + elementHeight > height) {
-          const trList = element.trList!
-          // 计算需要移除的行数
+
+        const tableRowMarginHeight = rowMargin * 2 * scale
+        const tableExceedsPage =
+          accumulatedPageHeight + tableRowMarginHeight + metrics.height >
+          pageHeight
+
+        // --- table split ---
+        if (tableExceedsPage) {
           let deleteStart = 0
           let deleteCount = 0
-          let preTrHeight = 0
+          let accumulatedTrHeight = 0
+
           if (trList.length > 1) {
-            for (let r = 0; r < trList.length; r++) {
-              const tr = trList[r]
+            for (let rowIndex = 0; rowIndex < trList.length; rowIndex++) {
+              const tr = trList[rowIndex]
               const trHeight = tr.height * scale
-              if (
-                curPagePreHeight + rowMarginHeight + preTrHeight + trHeight >
-                height
-              ) {
-                // 是否跨列
-                if (element.colgroup?.length !== tr.tdList.length) {
-                  deleteCount = 0
+              const trExceedsPage =
+                accumulatedPageHeight +
+                  tableRowMarginHeight +
+                  accumulatedTrHeight +
+                  trHeight >
+                pageHeight
+
+              if (trExceedsPage) {
+                const isSpannedRow =
+                  element.colgroup?.length !== tr.tdList.length
+                if (isSpannedRow) deleteCount = 0
+                else {
+                  // ← include the overflowing row itself in the split
+                  deleteStart = rowIndex
+                  deleteCount = trList.length - deleteStart
                 }
                 break
-              } else {
-                deleteStart = r + 1
-                deleteCount = trList.length - deleteStart
-                preTrHeight += trHeight
               }
+              deleteStart = rowIndex + 1
+              deleteCount = trList.length - deleteStart
+              accumulatedTrHeight += trHeight
             }
           }
+
           if (deleteCount) {
             const cloneTrList = trList.splice(deleteStart, deleteCount)
-            const cloneTrHeight = cloneTrList.reduce(
-              (pre, cur) => pre + cur.height,
+            const tdList = cloneTrList[0].tdList
+            const [currentPageTdList, nextPageTdList] =
+              this.splitTrListByPageHeight(
+                tdList,
+                pageHeight - (accumulatedPageHeight + tableRowMarginHeight)
+              )
+            cloneTrList[0].tdList = nextPageTdList
+            const tr = deepClone(trList[0])
+            tr.height = currentPageTdList.reduce(
+              (pre, cur) => pre + (cur.height || 0),
+              0
+            )
+            tr.tdList = currentPageTdList
+
+            const cloneTrHeight = cloneTrList[0].tdList.reduce(
+              (pre, cur) => pre + (cur.height || 0),
               0
             )
             element.height -= cloneTrHeight
             metrics.height -= cloneTrHeight
             metrics.boundingBoxDescent -= cloneTrHeight
-            // 追加拆分表格
             const cloneElement = deepClone(element)
             cloneElement.trList = cloneTrList
-            cloneElement.id = getUUID()
+            cloneElement.id = element.id
             this.spliceElementList(elementList, i + 1, 0, cloneElement)
-            // 换页的是当前行则改变上下文
+
             const positionContext = this.position.getPositionContext()
-            if (
-              positionContext.isTable &&
-              positionContext.trIndex === deleteStart
-            ) {
+            const splitAtCursor =
+              positionContext.isTable && positionContext.trIndex === deleteStart
+            if (splitAtCursor) {
               positionContext.index! += 1
               positionContext.trIndex = 0
               this.position.setPositionContext(positionContext)
@@ -1177,14 +1205,14 @@ export class Draw {
           }
         }
       } else if (element.type === ElementType.SEPARATOR) {
-        element.width = availableWidth
-        metrics.width = availableWidth
+        element.width = availableRowWidth
+        metrics.width = availableRowWidth
         metrics.height = defaultSize
         metrics.boundingBoxAscent = -rowMargin
         metrics.boundingBoxDescent = -rowMargin
       } else if (element.type === ElementType.PAGE_BREAK) {
-        element.width = availableWidth
-        metrics.width = availableWidth
+        element.width = availableRowWidth
+        metrics.width = availableRowWidth
         metrics.height = defaultSize
       } else if (
         element.type === ElementType.CHECKBOX ||
@@ -1201,22 +1229,19 @@ export class Draw {
         metrics.boundingBoxDescent = 0
         metrics.boundingBoxAscent = metrics.height
       } else if (element.type === ElementType.BLOCK) {
-        if (!element.width) {
-          metrics.width = availableWidth
-        } else {
-          const elementWidth = element.width * scale
-          metrics.width = Math.min(elementWidth, availableWidth)
-        }
+        const elementWidth = element.width
+          ? element.width * scale
+          : availableRowWidth
+        metrics.width = Math.min(elementWidth, availableRowWidth)
         metrics.height = element.height! * scale
         metrics.boundingBoxDescent = metrics.height
         metrics.boundingBoxAscent = 0
       } else {
-        // 设置上下标真实字体尺寸
         const size = element.size || defaultSize
-        if (
+        const isSuperOrSubscript =
           element.type === ElementType.SUPERSCRIPT ||
           element.type === ElementType.SUBSCRIPT
-        ) {
+        if (isSuperOrSubscript) {
           element.actualSize = Math.ceil(size * 0.6)
         }
         metrics.height = (element.actualSize || size) * scale
@@ -1238,50 +1263,51 @@ export class Draw {
           metrics.boundingBoxDescent += metrics.height / 2
         }
       }
-      const ascent =
+
+      const isImageOrLatexBlock =
         (element.imgDisplay !== ImageDisplay.INLINE &&
           element.type === ElementType.IMAGE) ||
         element.type === ElementType.LATEX
-          ? metrics.height + rowMargin
-          : metrics.boundingBoxAscent + rowMargin
+      const ascent = isImageOrLatexBlock
+        ? metrics.height + rowMargin
+        : metrics.boundingBoxAscent + rowMargin
       const height =
         rowMargin +
         metrics.boundingBoxAscent +
         metrics.boundingBoxDescent +
         rowMargin
+
       const rowElement: IRowElement = Object.assign(element, {
         metrics,
         style: this._getFont(element, scale)
       })
-      // 超过限定宽度
+
       const preElement = elementList[i - 1]
       let nextElement = elementList[i + 1]
-      // 累计行宽 + 当前元素宽度 + 排版宽度(英文单词整体宽度 + 后面标点符号宽度)
-      let curRowWidth = curRow.width + metrics.width
-      if (this.options.wordBreak === WordBreak.BREAK_WORD) {
-        if (
-          (!preElement?.type || preElement?.type === ElementType.TEXT) &&
-          (!element.type || element.type === ElementType.TEXT)
-        ) {
-          // 英文单词
-          const word = `${preElement?.value || ''}${element.value}`
-          if (WORD_LIKE_REG.test(word)) {
-            const { width, endElement } = this.textParticle.measureWord(
-              ctx,
-              elementList,
-              i
-            )
-            curRowWidth += width
-            nextElement = endElement
-          }
-          // 标点符号
-          curRowWidth += this.textParticle.measurePunctuationWidth(
+      let curRowWidth = currentRow.width + metrics.width
+
+      const isBreakWord = this.options.wordBreak === WordBreak.BREAK_WORD
+      const isBothText =
+        (!preElement?.type || preElement?.type === ElementType.TEXT) &&
+        (!element.type || element.type === ElementType.TEXT)
+
+      if (isBreakWord && isBothText) {
+        const adjacentWord = `${preElement?.value || ''}${element.value}`
+        if (WORD_LIKE_REG.test(adjacentWord)) {
+          const { width, endElement } = this.textParticle.measureWord(
             ctx,
-            nextElement
+            elementList,
+            i
           )
+          curRowWidth += width
+          nextElement = endElement
         }
+        curRowWidth += this.textParticle.measurePunctuationWidth(
+          ctx,
+          nextElement
+        )
       }
-      // 列表信息
+
       if (element.listId) {
         if (element.listId !== listId) {
           listIndex = 0
@@ -1290,39 +1316,45 @@ export class Draw {
         }
       }
       listId = element.listId
-      if (
+
+      const mustBreakRow =
         element.type === ElementType.TABLE ||
         preElement?.type === ElementType.TABLE ||
         preElement?.type === ElementType.BLOCK ||
         element.type === ElementType.BLOCK ||
         preElement?.imgDisplay === ImageDisplay.INLINE ||
         element.imgDisplay === ImageDisplay.INLINE ||
-        curRowWidth > availableWidth ||
+        curRowWidth > availableRowWidth ||
         (i !== 0 && element.value === ZERO) ||
         preElement?.listId !== element.listId
-      ) {
-        // 减小行元素前第一行空行行高
-        if (
-          curRow.startIndex === 0 &&
-          curRow.elementList.length === 1 &&
+
+      if (mustBreakRow) {
+        const isLeadingEmptyRow =
+          currentRow.startIndex === 0 &&
+          currentRow.elementList.length === 1 &&
           (INLINE_ELEMENT_TYPE.includes(element.type!) || element.listId)
-        ) {
-          curRow.height = defaultBasicRowMarginHeight
+        if (isLeadingEmptyRow) {
+          currentRow.height = defaultBasicRowMarginHeight
         }
-        // 两端对齐
-        if (
+
+        const shouldJustify =
           preElement?.rowFlex === RowFlex.ALIGNMENT &&
-          curRowWidth > availableWidth
-        ) {
+          curRowWidth > availableRowWidth
+        if (shouldJustify) {
           const gap =
-            (availableWidth - curRow.width) / curRow.elementList.length
-          for (let e = 0; e < curRow.elementList.length; e++) {
-            const el = curRow.elementList[e]
-            el.metrics.width += gap
+            (availableRowWidth - currentRow.width) /
+            currentRow.elementList.length
+          for (
+            let elIndex = 0;
+            elIndex < currentRow.elementList.length;
+            elIndex++
+          ) {
+            currentRow.elementList[elIndex].metrics.width += gap
           }
-          curRow.width = availableWidth
+          currentRow.width = availableRowWidth
         }
-        const row: IRow = {
+
+        const newRow: IRow = {
           width: metrics.width,
           height,
           startIndex: i,
@@ -1332,20 +1364,21 @@ export class Draw {
           isPageBreak: element.type === ElementType.PAGE_BREAK
         }
         if (element.listId) {
-          row.isList = true
-          row.offsetX = listStyleMap.get(element.listId!)
-          row.listIndex = listIndex
+          newRow.isList = true
+          newRow.offsetX = listStyleMap.get(element.listId!)
+          newRow.listIndex = listIndex
         }
-        rowList.push(row)
+        rowList.push(newRow)
       } else {
-        curRow.width += metrics.width
-        if (curRow.height < height) {
-          curRow.height = height
-          curRow.ascent = ascent
+        currentRow.width += metrics.width
+        if (currentRow.height < height) {
+          currentRow.height = height
+          currentRow.ascent = ascent
         }
-        curRow.elementList.push(rowElement)
+        currentRow.elementList.push(rowElement)
       }
     }
+
     return rowList
   }
 
@@ -1858,5 +1891,164 @@ export class Draw {
     this.globalEvent.removeEvent()
     this.scrollObserver.removeEvent()
     this.selectionObserver.removeEvent()
+  }
+  public splitTableRowsByAvailableHeight(
+    tableElement: IElement,
+    elementList: IElement[],
+    tableIndex: number,
+    deleteStart: number,
+    occupiedPageHeight: number
+  ) {}
+
+  private splitTrListByPageHeight(
+    tdList: ITd[],
+    availablePageHeight: number
+  ): [ITd[], ITd[]] {
+    const currentPageTdList: ITd[] = []
+
+    const nextPageTdList: ITd[] = []
+
+    const currentPageNo = ((tdList[0] || []) as any)?.(
+      positionList[0] || []
+    )?.pageNo
+    const nextPageNo = currentPageNo + 1
+    for (const td of tdList) {
+      const currentTd = deepClone(td)
+
+      const nextTd = deepClone(td)
+
+      const currentRowList: IRow[] = []
+
+      const overflowRowList: IRow[] = []
+
+      let accumulatedHeight = 0
+
+      for (const row of td.rowList || []) {
+        const rowHeight = row.height || 0
+
+        const canFitInCurrentPage =
+          accumulatedHeight + rowHeight <= availablePageHeight
+
+        if (canFitInCurrentPage) {
+          currentRowList.push(row)
+
+          accumulatedHeight += rowHeight
+        } else {
+          overflowRowList.push(row)
+        }
+      }
+
+      // -----------------------------------
+      // Current Page TD
+      // -----------------------------------
+
+      currentTd.rowList = this.updateRowList(currentRowList)
+
+      currentTd.value = this.rebuildValueFromRowList(currentTd.rowList)
+
+      currentTd.positionList = this.rebuildPositionListFromRowList(
+        currentTd.rowList,
+        currentPageNo
+      )
+
+      currentTd.height = this.calculateRowListHeight(currentTd.rowList)
+
+      currentTd.mainHeight = currentTd.height
+
+      currentTd.realHeight = currentTd.height
+
+      currentTd.realMinHeight = currentTd.height
+
+      // -----------------------------------
+      // Next Page TD
+      // -----------------------------------
+
+      nextTd.rowList = this.updateRowList(overflowRowList)
+
+      nextTd.value = overflowRowList.length
+        ? this.rebuildValueFromRowList(nextTd.rowList)
+        : [{ value: '' }]
+
+      nextTd.positionList = this.rebuildPositionListFromRowList(
+        nextTd.rowList,
+        nextPageNo
+      )
+
+      nextTd.height = this.calculateRowListHeight(nextTd.rowList)
+
+      nextTd.mainHeight = nextTd.height
+
+      nextTd.realHeight = nextTd.height
+
+      nextTd.realMinHeight = nextTd.height
+
+      currentPageTdList.push(currentTd)
+
+      nextPageTdList.push(nextTd)
+    }
+
+    return [currentPageTdList, nextPageTdList]
+  }
+
+  private updateRowList(rowList: ITr[]): ITr[] {
+    return rowList.map((row, rowIndex) => {
+      return {
+        ...row,
+        startIndex: rowIndex,
+        isPageBreak: false
+      }
+    })
+  }
+
+  private rebuildValueFromRowList(rowList: ITr[]): IElement[] {
+    return rowList.flatMap(row =>
+      (row.elementList || []).map(element => ({
+        ...element
+      }))
+    )
+  }
+
+  private rebuildPositionListFromRowList(
+    rowList: IRow[],
+    pageNo: number
+  ): IElementPosition[] {
+    const positionList: IElementPosition[] = []
+
+    let globalIndex = 0
+
+    rowList.forEach((row, rowNo) => {
+      const elementList = row.elementList || []
+
+      elementList.forEach((element, elementIndex) => {
+        const position = {
+          ...(element.position || {})
+        }
+
+        position.pageNo = pageNo
+
+        position.rowNo = rowNo
+
+        position.rowIndex = rowNo
+
+        position.index = globalIndex
+
+        position.isFirstLetter = elementIndex === 0
+
+        position.isLastLetter = elementIndex === elementList.length - 1
+
+        positionList.push(position)
+
+        globalIndex++
+      })
+    })
+
+    return positionList
+  }
+
+  private calculateRowListHeight(rowList: ITr[]): number {
+    return rowList.reduce(
+      (totalHeight, row) => totalHeight + (row.height || 0),
+      0
+    )
   }
 }
