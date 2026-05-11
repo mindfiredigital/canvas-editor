@@ -1,5 +1,5 @@
 import { version } from '../../../../package.json'
-import { ZERO } from '../../dataset/constant/Common'
+import { PX_PER_PT, ZERO } from '../../dataset/constant/Common'
 import { RowFlex } from '../../dataset/enum/Row'
 import {
   IAppendElementListOption,
@@ -957,7 +957,7 @@ export class Draw {
     const font = el.font || defaultFont
     const size = el.actualSize || el.size || defaultSize
     return `${el.italic ? 'italic ' : ''}${el.bold ? 'bold ' : ''}${
-      size * scale
+      size * scale * PX_PER_PT
     }px ${font}`
   }
 
@@ -986,8 +986,15 @@ export class Draw {
     for (let i = 0; i < elementList.length; i++) {
       const curRow: IRow = rowList[rowList.length - 1]
       const element = elementList[i]
+      // Word/Google-Docs line-spacing: total line height ≈ fontSize × NATURAL_LH × spacing
+      // where NATURAL_LH ≈ 1.2 is the font's natural line height. Per-side margin is
+      // half the leading beyond the glyph's bounding box (~elSize_px).
+      const lineSpacing = element.rowMargin || defaultRowMargin
+      const elSizePx =
+        (element.size || defaultSize) * PX_PER_PT * scale
+      const NATURAL_LINE_HEIGHT = 1.2
       const rowMargin =
-        defaultBasicRowMarginHeight * (element.rowMargin || defaultRowMargin)
+        (elSizePx * Math.max(NATURAL_LINE_HEIGHT * lineSpacing - 1, 0)) / 2
       // Paragraph spacing only applies to paragraph-start markers (ZERO)
       const isParaStart = element.value === ZERO
       const paragraphSpacingBefore = isParaStart
@@ -1291,13 +1298,13 @@ export class Draw {
       } else if (element.type === ElementType.SEPARATOR) {
         element.width = availableWidth
         metrics.width = availableWidth
-        metrics.height = defaultSize
+        metrics.height = defaultSize * PX_PER_PT
         metrics.boundingBoxAscent = -rowMargin
         metrics.boundingBoxDescent = -rowMargin
       } else if (element.type === ElementType.PAGE_BREAK) {
         element.width = availableWidth
         metrics.width = availableWidth
-        metrics.height = defaultSize
+        metrics.height = defaultSize * PX_PER_PT
       } else if (
         element.type === ElementType.CHECKBOX ||
         element.controlComponent === ControlComponent.CHECKBOX
@@ -1309,7 +1316,7 @@ export class Draw {
         metrics.height = height * scale
       } else if (element.type === ElementType.TAB) {
         metrics.width = defaultTabWidth * scale
-        metrics.height = defaultSize * scale
+        metrics.height = defaultSize * scale * PX_PER_PT
         metrics.boundingBoxDescent = 0
         metrics.boundingBoxAscent = metrics.height
       } else if (element.type === ElementType.BLOCK) {
@@ -1331,19 +1338,23 @@ export class Draw {
         ) {
           element.actualSize = Math.ceil(size * 0.6)
         }
-        metrics.height = (element.actualSize || size) * scale
+        metrics.height = (element.actualSize || size) * scale * PX_PER_PT
         ctx.font = this._getFont(element)
         const fontMetrics = this.textParticle.measureText(ctx, element)
         metrics.width = fontMetrics.width * scale
         if (element.letterSpacing) {
           metrics.width += element.letterSpacing * scale
         }
-        metrics.boundingBoxAscent =
-          (element.value === ZERO
-            ? defaultSize
-            : fontMetrics.actualBoundingBoxAscent) * scale
-        metrics.boundingBoxDescent =
-          fontMetrics.actualBoundingBoxDescent * scale
+        // Use font-size-derived ascent/descent uniformly so row heights are
+        // consistent across wrapped lines, hard-break (Enter) lines, and
+        // imported-doc paragraphs. Glyph-bounding-box metrics (varies per
+        // character) caused uneven line spacing — descender-less rows came
+        // out shorter than ZERO-marker / descender rows in the same paragraph.
+        const fontPx = (element.actualSize || size) * scale * PX_PER_PT
+        const ASCENT_RATIO = 0.8
+        const DESCENT_RATIO = 0.2
+        metrics.boundingBoxAscent = fontPx * ASCENT_RATIO
+        metrics.boundingBoxDescent = fontPx * DESCENT_RATIO
         if (element.type === ElementType.SUPERSCRIPT) {
           metrics.boundingBoxAscent += metrics.height / 2
         } else if (element.type === ElementType.SUBSCRIPT) {
@@ -1516,8 +1527,7 @@ export class Draw {
     const { rowList, pageNo, elementList, positionList, startIndex, zone } =
       payload
     // const { scale, tdPadding } = this.options
-    const { scale, tdPadding, defaultBasicRowMarginHeight, defaultRowMargin } =
-      this.options
+    const { scale, tdPadding, defaultRowMargin } = this.options
     const { isCrossRowCol, tableId } = this.range.getRange()
     let index = startIndex
     for (let i = 0; i < rowList.length; i++) {
@@ -1614,10 +1624,11 @@ export class Draw {
         }
         // 下划线记录
         if (element.underline) {
+          const lineSpacing = element.rowMargin || defaultRowMargin
+          const elSizePx =
+            (element.size || this.options.defaultSize) * PX_PER_PT * scale
           const rowMargin =
-            defaultBasicRowMarginHeight *
-            (element.rowMargin || defaultRowMargin) *
-            scale
+            (elSizePx * Math.max(1.2 * lineSpacing - 1, 0)) / 2
           this.underline.recordFillInfo(
             ctx,
             x,
