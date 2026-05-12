@@ -4611,8 +4611,8 @@ class Cursor {
     const height = this.draw.getHeight();
     const pageGap = this.draw.getPageGap();
     if (hitLineStartIndex) {
-      const positionList = this.position.getPositionList();
-      cursorPosition = positionList[hitLineStartIndex];
+      const positionList2 = this.position.getPositionList();
+      cursorPosition = positionList2[hitLineStartIndex];
     }
     const { metrics, coordinate: { leftTop, rightTop }, ascent, pageNo } = cursorPosition;
     const zoneManager = this.draw.getZone();
@@ -4914,14 +4914,14 @@ function mousedown(evt, host) {
     index: isTable ? tdValueIndex : index2
   });
   const elementList = draw.getElementList();
-  const positionList = position.getPositionList();
+  const positionList2 = position.getPositionList();
   const curIndex = isTable ? tdValueIndex : index2;
   const curElement = elementList[curIndex];
   const isDirectHitImage = !!(isDirectHit && isImage);
   const isDirectHitCheckbox = !!(isDirectHit && isCheckbox);
   if (~index2) {
     rangeManager.setRange(curIndex, curIndex);
-    position.setCursorPosition(positionList[curIndex]);
+    position.setCursorPosition(positionList2[curIndex]);
     const isSetCheckbox = isDirectHitCheckbox && !isReadonly;
     if (isSetCheckbox) {
       const { checkbox } = curElement;
@@ -4953,7 +4953,7 @@ function mousedown(evt, host) {
   const previewer = draw.getPreviewer();
   previewer.clearResizer();
   if (isDirectHitImage && !isReadonly) {
-    previewer.drawResizer(curElement, positionList[curIndex], curElement.type === ElementType.LATEX ? {
+    previewer.drawResizer(curElement, positionList2[curIndex], curElement.type === ElementType.LATEX ? {
       mime: "svg",
       srcKey: "laTexSVG"
     } : {});
@@ -4972,13 +4972,13 @@ function mousedown(evt, host) {
     if (isMod(evt)) {
       hyperlinkParticle.openHyperlink(curElement);
     } else {
-      hyperlinkParticle.drawHyperlinkPopup(curElement, positionList[curIndex]);
+      hyperlinkParticle.drawHyperlinkPopup(curElement, positionList2[curIndex]);
     }
   }
   const dateParticle = draw.getDateParticle();
   dateParticle.clearDatePicker();
   if (curElement.type === ElementType.DATE && !isReadonly) {
-    dateParticle.renderDatePicker(curElement, positionList[curIndex]);
+    dateParticle.renderDatePicker(curElement, positionList2[curIndex]);
   }
 }
 function createDragId(element) {
@@ -4996,7 +4996,7 @@ function mouseup(evt, host) {
     if (draw.isReadonly())
       return;
     const position = draw.getPosition();
-    const positionList = position.getPositionList();
+    const positionList2 = position.getPositionList();
     const rangeManager = draw.getRange();
     const cacheRange = host.cacheRange;
     const cacheElementList = host.cacheElementList;
@@ -5086,7 +5086,7 @@ function mouseup(evt, host) {
     }
     const startElement = elementList[range.startIndex];
     const cacheStartElement = cacheElementList[cacheRange.startIndex];
-    const startPosition = positionList[range.startIndex];
+    const startPosition = positionList2[range.startIndex];
     const cacheStartPosition = cachePositionList[cacheRange.startIndex];
     const positionContext = position.getPositionContext();
     let positionContextIndex = positionContext.index;
@@ -5129,9 +5129,9 @@ function mousemove(evt, host) {
     const x = evt.offsetX;
     const y = evt.offsetY;
     const { startIndex: startIndex2, endIndex: endIndex2 } = host.cacheRange;
-    const positionList = host.cachePositionList;
+    const positionList2 = host.cachePositionList;
     for (let p = startIndex2 + 1; p <= endIndex2; p++) {
-      const { coordinate: { leftTop, rightBottom } } = positionList[p];
+      const { coordinate: { leftTop, rightBottom } } = positionList2[p];
       if (x >= leftTop[0] && x <= rightBottom[0] && y >= leftTop[1] && y <= rightBottom[1]) {
         return;
       }
@@ -5189,7 +5189,7 @@ function keydown(evt, host) {
   const isReadonly = draw.isReadonly();
   const historyManager = draw.getHistoryManager();
   const elementList = draw.getElementList();
-  const positionList = position.getPositionList();
+  const positionList2 = position.getPositionList();
   const { index: index2 } = cursorPosition;
   const rangeManager = draw.getRange();
   const { startIndex, endIndex } = rangeManager.getRange();
@@ -5211,7 +5211,7 @@ function keydown(evt, host) {
       const startElement = elementList[startIndex];
       if (isCollapsed && startElement.rowFlex && startElement.value === ZERO) {
         const rowList = draw.getRowList();
-        const rowNo = positionList[startIndex].rowNo;
+        const rowNo = positionList2[startIndex].rowNo;
         const rowFlexElementList = rowList[rowNo].elementList;
         rowFlexElementList.forEach((element) => {
           delete element.rowFlex;
@@ -5310,7 +5310,7 @@ function keydown(evt, host) {
   } else if (evt.key === KeyMap.Right) {
     if (isReadonly)
       return;
-    if (index2 < positionList.length) {
+    if (index2 < positionList2.length) {
       const curIndex = endIndex + 1;
       let anchorStartIndex = curIndex;
       let anchorEndIndex = curIndex;
@@ -5348,9 +5348,9 @@ function keydown(evt, host) {
     let anchorPosition = cursorPosition;
     if (evt.shiftKey) {
       if (startIndex === cursorPosition.index) {
-        anchorPosition = positionList[endIndex];
+        anchorPosition = positionList2[endIndex];
       } else {
-        anchorPosition = positionList[startIndex];
+        anchorPosition = positionList2[startIndex];
       }
     }
     const { index: index22, rowNo, rowIndex, coordinate: { leftTop: [curLeftX], rightTop: [curRightX] } } = anchorPosition;
@@ -5362,7 +5362,7 @@ function keydown(evt, host) {
     if (isUp) {
       let p = index22 - 1;
       while (p > 0) {
-        const position2 = positionList[p];
+        const position2 = positionList2[p];
         p--;
         if (position2.rowNo === rowNo)
           continue;
@@ -5373,8 +5373,8 @@ function keydown(evt, host) {
       }
     } else {
       let p = index22 + 1;
-      while (p < positionList.length) {
-        const position2 = positionList[p];
+      while (p < positionList2.length) {
+        const position2 = positionList2[p];
         p++;
         if (position2.rowNo === rowNo)
           continue;
@@ -5617,13 +5617,13 @@ function cut(host) {
   console.log("Cut a line without selection");
   if (startIndex === endIndex) {
     const position = draw.getPosition();
-    const positionList = position.getPositionList();
-    const startPosition = positionList[startIndex];
+    const positionList2 = position.getPositionList();
+    const startPosition = positionList2[startIndex];
     const curRowNo = startPosition.rowNo;
     const curPageNo = startPosition.pageNo;
     const cutElementIndexList = [];
-    for (let p = 0; p < positionList.length; p++) {
-      const position2 = positionList[p];
+    for (let p = 0; p < positionList2.length; p++) {
+      const position2 = positionList2[p];
       if (position2.pageNo > curPageNo)
         break;
       if (position2.pageNo === curPageNo && position2.rowNo === curRowNo) {
@@ -5812,12 +5812,12 @@ function dragover(evt, host) {
   if (!positionContext)
     return;
   const { isTable, tdValueIndex, index: index2 } = positionContext;
-  const positionList = position.getPositionList();
+  const positionList2 = position.getPositionList();
   const curIndex = isTable ? tdValueIndex : index2;
   if (~index2) {
     const rangeManager = draw.getRange();
     rangeManager.setRange(curIndex, curIndex);
-    position.setCursorPosition(positionList[curIndex]);
+    position.setCursorPosition(positionList2[curIndex]);
   }
   const cursor = draw.getCursor();
   const { cursor: { dragColor, dragWidth } } = draw.getOptions();
@@ -6214,7 +6214,7 @@ class Position {
     this.positionList = payload;
   }
   computePageRowPosition(payload) {
-    const { positionList, rowList, pageNo, startX, startY, startRowIndex, startIndex, innerWidth } = payload;
+    const { positionList: positionList2, rowList, pageNo, startX, startY, startRowIndex, startIndex, innerWidth } = payload;
     const { scale, tdPadding } = this.options;
     let x = startX;
     let y = startY;
@@ -6253,7 +6253,7 @@ class Position {
             rightBottom: [x + metrics.width, y + curRow.height]
           }
         };
-        positionList.push(positionItem);
+        positionList2.push(positionItem);
         index2++;
         x += metrics.width;
         if (element.type === ElementType.TABLE) {
@@ -6342,19 +6342,19 @@ class Position {
   getPositionByXY(payload) {
     var _a, _b;
     const { x, y, isTable } = payload;
-    let { elementList, positionList } = payload;
+    let { elementList, positionList: positionList2 } = payload;
     if (!elementList) {
       elementList = this.draw.getOriginalElementList();
     }
-    if (!positionList) {
-      positionList = this.getOriginalPositionList();
+    if (!positionList2) {
+      positionList2 = this.getOriginalPositionList();
     }
     const zoneManager = this.draw.getZone();
     const curPageNo = this.draw.getPageNo();
     const isMainActive = zoneManager.isMainActive();
     const positionNo = isMainActive ? curPageNo : 0;
-    for (let j = 0; j < positionList.length; j++) {
-      const { index: index2, pageNo, isFirstLetter, coordinate: { leftTop, rightTop, leftBottom } } = positionList[j];
+    for (let j = 0; j < positionList2.length; j++) {
+      const { index: index2, pageNo, isFirstLetter, coordinate: { leftTop, rightTop, leftBottom } } = positionList2[j];
       if (positionNo !== pageNo)
         continue;
       if (leftTop[0] <= x && rightTop[0] >= x && leftTop[1] <= y && leftBottom[1] >= y) {
@@ -6369,7 +6369,7 @@ class Position {
                 x,
                 y,
                 td,
-                tablePosition: positionList[j],
+                tablePosition: positionList2[j],
                 isTable: true,
                 elementList: td.value,
                 positionList: td.positionList
@@ -6446,7 +6446,7 @@ class Position {
         }
       }
     }
-    const lastLetterList = positionList.filter((p) => p.isLastLetter && p.pageNo === positionNo);
+    const lastLetterList = positionList2.filter((p) => p.isLastLetter && p.pageNo === positionNo);
     for (let j = 0; j < lastLetterList.length; j++) {
       const { index: index2, pageNo, coordinate: { leftTop, leftBottom } } = lastLetterList[j];
       if (positionNo !== pageNo)
@@ -6454,9 +6454,9 @@ class Position {
       if (y > leftTop[1] && y <= leftBottom[1]) {
         const isHead = x < this.options.margins[3];
         if (isHead) {
-          const headIndex = positionList.findIndex((p) => p.pageNo === positionNo && p.rowNo === lastLetterList[j].rowNo);
+          const headIndex = positionList2.findIndex((p) => p.pageNo === positionNo && p.rowNo === lastLetterList[j].rowNo);
           if (~headIndex) {
-            if (positionList[headIndex].value === ZERO) {
+            if (positionList2[headIndex].value === ZERO) {
               curPositionIndex = headIndex;
             } else {
               curPositionIndex = headIndex - 1;
@@ -6500,7 +6500,7 @@ class Position {
         }
       }
       return {
-        index: ((_a = lastLetterList[lastLetterList.length - 1]) == null ? void 0 : _a.index) || positionList.length - 1
+        index: ((_a = lastLetterList[lastLetterList.length - 1]) == null ? void 0 : _a.index) || positionList2.length - 1
       };
     }
     return {
@@ -6591,10 +6591,10 @@ class RangeManager {
     const { startIndex, endIndex } = this.range;
     if (!~startIndex && !~endIndex)
       return null;
-    const positionList = this.position.getPositionList();
+    const positionList2 = this.position.getPositionList();
     const rangeRow = new Map();
     for (let p = startIndex; p < endIndex + 1; p++) {
-      const { pageNo, rowNo } = positionList[p];
+      const { pageNo, rowNo } = positionList2[p];
       const rowSet = rangeRow.get(pageNo);
       if (!rowSet) {
         rangeRow.set(pageNo, new Set([rowNo]));
@@ -6611,12 +6611,12 @@ class RangeManager {
     const { startIndex, endIndex } = this.range;
     if (!~startIndex && !~endIndex)
       return null;
-    const positionList = this.position.getPositionList();
+    const positionList2 = this.position.getPositionList();
     const elementList = this.draw.getElementList();
     const rangeRow = new Map();
     let start = startIndex;
     while (start >= 0) {
-      const { pageNo, rowNo } = positionList[start];
+      const { pageNo, rowNo } = positionList2[start];
       let rowArray = rangeRow.get(pageNo);
       if (!rowArray) {
         rowArray = [];
@@ -6625,7 +6625,7 @@ class RangeManager {
       if (!rowArray.includes(rowNo)) {
         rowArray.unshift(rowNo);
       }
-      if (((_a = positionList[start]) == null ? void 0 : _a.value) === ZERO || elementList[start].titleId !== ((_b = elementList[start - 1]) == null ? void 0 : _b.titleId)) {
+      if (((_a = positionList2[start]) == null ? void 0 : _a.value) === ZERO || elementList[start].titleId !== ((_b = elementList[start - 1]) == null ? void 0 : _b.titleId)) {
         break;
       }
       start--;
@@ -6633,7 +6633,7 @@ class RangeManager {
     if (startIndex !== endIndex) {
       let middle = startIndex + 1;
       while (middle < endIndex) {
-        const { pageNo, rowNo } = positionList[middle];
+        const { pageNo, rowNo } = positionList2[middle];
         let rowArray = rangeRow.get(pageNo);
         if (!rowArray) {
           rowArray = [];
@@ -6646,11 +6646,11 @@ class RangeManager {
       }
     }
     let end = endIndex;
-    while (end < positionList.length) {
-      if (positionList[end].value === ZERO || elementList[end].titleId !== ((_c = elementList[end + 1]) == null ? void 0 : _c.titleId)) {
+    while (end < positionList2.length) {
+      if (positionList2[end].value === ZERO || elementList[end].titleId !== ((_c = elementList[end + 1]) == null ? void 0 : _c.titleId)) {
         break;
       }
-      const { pageNo, rowNo } = positionList[end];
+      const { pageNo, rowNo } = positionList2[end];
       let rowArray = rangeRow.get(pageNo);
       if (!rowArray) {
         rowArray = [];
@@ -6672,9 +6672,9 @@ class RangeManager {
     if (!rangeRow)
       return null;
     const elementList = this.draw.getElementList();
-    const positionList = this.position.getPositionList();
-    for (let p = 0; p < positionList.length; p++) {
-      const position = positionList[p];
+    const positionList2 = this.position.getPositionList();
+    for (let p = 0; p < positionList2.length; p++) {
+      const position = positionList2[p];
       const rowArray = rangeRow.get(position.pageNo);
       if (!rowArray)
         continue;
@@ -6691,9 +6691,9 @@ class RangeManager {
   }
   getIsPointInRange(x, y) {
     const { startIndex, endIndex } = this.range;
-    const positionList = this.position.getPositionList();
+    const positionList2 = this.position.getPositionList();
     for (let p = startIndex + 1; p <= endIndex; p++) {
-      const { coordinate: { leftTop, rightBottom } } = positionList[p];
+      const { coordinate: { leftTop, rightBottom } } = positionList2[p];
       if (x >= leftTop[0] && x <= rightBottom[0] && y >= leftTop[1] && y <= rightBottom[1]) {
         return true;
       }
@@ -7288,7 +7288,7 @@ class Search {
       return;
     }
     const { searchMatchAlpha, searchMatchColor, searchNavigateMatchColor } = this.options;
-    const positionList = this.position.getOriginalPositionList();
+    const positionList2 = this.position.getOriginalPositionList();
     const elementList = this.draw.getOriginalElementList();
     ctx.save();
     ctx.globalAlpha = searchMatchAlpha;
@@ -7299,7 +7299,7 @@ class Search {
         const { tableIndex, trIndex, tdIndex, index: index2 } = searchMatch;
         position = (_b = (_a = elementList[tableIndex]) == null ? void 0 : _a.trList[trIndex].tdList[tdIndex]) == null ? void 0 : _b.positionList[index2];
       } else {
-        position = positionList[searchMatch.index];
+        position = positionList2[searchMatch.index];
       }
       if (!position)
         continue;
@@ -7987,9 +7987,9 @@ class TableTool {
     this.dispose();
     const { scale } = this.options;
     const elementList = this.draw.getOriginalElementList();
-    const positionList = this.position.getOriginalPositionList();
+    const positionList2 = this.position.getOriginalPositionList();
     const element = elementList[index2];
-    const position = positionList[index2];
+    const position = positionList2[index2];
     const { colgroup, trList } = element;
     const { coordinate: { leftTop } } = position;
     const height = this.draw.getHeight();
@@ -8887,9 +8887,9 @@ class Control {
     return this.draw.getElementList();
   }
   getPosition() {
-    const positionList = this.draw.getPosition().getPositionList();
+    const positionList2 = this.draw.getPosition().getPositionList();
     const { endIndex } = this.range.getRange();
-    return positionList[endIndex] || null;
+    return positionList2[endIndex] || null;
   }
   getPreY() {
     const height = this.draw.getHeight();
@@ -11554,7 +11554,7 @@ class Draw {
     let listId;
     let listIndex = 0;
     for (let i = 0; i < elementList.length; i++) {
-      const curRow = rowList[rowList.length - 1];
+      const currentRow = rowList[rowList.length - 1];
       const element = elementList[i];
       const rowMargin = defaultBasicRowMarginHeight * (element.rowMargin || defaultRowMargin);
       const metrics = {
@@ -11563,15 +11563,16 @@ class Draw {
         boundingBoxAscent: 0,
         boundingBoxDescent: 0
       };
-      const offsetX = element.listId ? listStyleMap.get(element.listId) || 0 : 0;
-      const availableWidth = innerWidth - offsetX;
+      const listOffsetX = element.listId ? listStyleMap.get(element.listId) || 0 : 0;
+      const availableRowWidth = innerWidth - listOffsetX;
       if (element.type === ElementType.IMAGE || element.type === ElementType.LATEX) {
         const elementWidth = element.width * scale;
         const elementHeight = element.height * scale;
-        const curRowWidth2 = element.imgDisplay === ImageDisplay.INLINE ? 0 : curRow.width;
-        if (curRowWidth2 + elementWidth > availableWidth) {
-          const surplusWidth = availableWidth - curRowWidth2;
-          const adaptiveWidth = surplusWidth > 0 ? surplusWidth : Math.min(elementWidth, availableWidth);
+        const baseWidth = element.imgDisplay === ImageDisplay.INLINE ? 0 : currentRow.width;
+        const exceedsRowWidth = baseWidth + elementWidth > availableRowWidth;
+        if (exceedsRowWidth) {
+          const surplusWidth = availableRowWidth - baseWidth;
+          const adaptiveWidth = surplusWidth > 0 ? surplusWidth : Math.min(elementWidth, availableRowWidth);
           element.width = adaptiveWidth;
           element.height = elementHeight * adaptiveWidth / elementWidth;
           metrics.width = element.width;
@@ -11587,114 +11588,124 @@ class Draw {
         const tdGap = tdPadding * 2;
         this.tableParticle.computeRowColInfo(element);
         const trList = element.trList;
-        for (let t = 0; t < trList.length; t++) {
-          const tr = trList[t];
-          for (let d = 0; d < tr.tdList.length; d++) {
-            const td = tr.tdList[d];
-            const rowList2 = this.computeRowList((td.width - tdGap) * scale, td.value);
-            const rowHeight = rowList2.reduce((pre, cur) => pre + cur.height, 0);
-            td.rowList = rowList2;
+        for (let trIndex = 0; trIndex < trList.length; trIndex++) {
+          const tr = trList[trIndex];
+          for (let tdIndex = 0; tdIndex < tr.tdList.length; tdIndex++) {
+            const td = tr.tdList[tdIndex];
+            const tdRowList = this.computeRowList((td.width - tdGap) * scale, td.value);
+            const rowHeight = tdRowList.reduce((pre, cur) => pre + cur.height, 0);
+            td.rowList = tdRowList;
             const curTdHeight = (rowHeight + tdGap) / scale;
             if (td.height < curTdHeight) {
               const extraHeight = curTdHeight - td.height;
-              const changeTr = trList[t + td.rowspan - 1];
-              changeTr.height += extraHeight;
-              changeTr.tdList.forEach((changeTd) => {
-                changeTd.height += extraHeight;
+              const targetTr = trList[trIndex + td.rowspan - 1];
+              targetTr.height += extraHeight;
+              targetTr.tdList.forEach((targetTd) => {
+                targetTd.height += extraHeight;
               });
             }
             let curTdMinHeight = 0;
             let curTdRealHeight = 0;
-            let i2 = 0;
-            while (i2 < td.rowspan) {
-              const curTr = trList[i2 + t];
+            let spanIndex = 0;
+            while (spanIndex < td.rowspan) {
+              const curTr = trList[spanIndex + trIndex];
               curTdMinHeight += curTr.minHeight;
               curTdRealHeight += curTr.height;
-              i2++;
+              spanIndex++;
             }
             td.realMinHeight = curTdMinHeight;
             td.realHeight = curTdRealHeight;
             td.mainHeight = curTdHeight;
           }
         }
-        const reduceTrList = this.tableParticle.getTrListGroupByCol(trList);
-        for (let t = 0; t < reduceTrList.length; t++) {
-          const tr = reduceTrList[t];
+        const trListGroupedByCol = this.tableParticle.getTrListGroupByCol(trList);
+        for (let trIndex = 0; trIndex < trListGroupedByCol.length; trIndex++) {
+          const tr = trListGroupedByCol[trIndex];
           let reduceHeight = -1;
-          for (let d = 0; d < tr.tdList.length; d++) {
-            const td = tr.tdList[d];
+          for (let tdIndex = 0; tdIndex < tr.tdList.length; tdIndex++) {
+            const td = tr.tdList[tdIndex];
             const curTdRealHeight = td.realHeight;
             const curTdHeight = td.mainHeight;
             const curTdMinHeight = td.realMinHeight;
-            const curReduceHeight = curTdHeight < curTdMinHeight ? curTdRealHeight - curTdMinHeight : curTdRealHeight - curTdHeight;
-            if (!~reduceHeight || curReduceHeight < reduceHeight) {
-              reduceHeight = curReduceHeight;
+            const candidateReduceHeight = curTdHeight < curTdMinHeight ? curTdRealHeight - curTdMinHeight : curTdRealHeight - curTdHeight;
+            if (!~reduceHeight || candidateReduceHeight < reduceHeight) {
+              reduceHeight = candidateReduceHeight;
             }
           }
-          if (reduceHeight > 0) {
-            const changeTr = trList[t];
-            changeTr.height -= reduceHeight;
-            changeTr.tdList.forEach((changeTd) => {
-              changeTd.height -= reduceHeight;
-            });
-          }
+          if (reduceHeight <= 0)
+            continue;
+          const targetTr = trList[trIndex];
+          targetTr.height -= reduceHeight;
+          targetTr.tdList.forEach((targetTd) => {
+            targetTd.height -= reduceHeight;
+          });
         }
         this.tableParticle.computeRowColInfo(element);
         const tableHeight = trList.reduce((pre, cur) => pre + cur.height, 0);
         const tableWidth = element.colgroup.reduce((pre, cur) => pre + cur.width, 0);
         element.width = tableWidth;
         element.height = tableHeight;
-        const elementWidth = tableWidth * scale;
-        const elementHeight = tableHeight * scale;
-        metrics.width = elementWidth;
-        metrics.height = elementHeight;
-        metrics.boundingBoxDescent = elementHeight;
+        metrics.width = tableWidth * scale;
+        metrics.height = tableHeight * scale;
+        metrics.boundingBoxDescent = metrics.height;
         metrics.boundingBoxAscent = 0;
-        const height2 = this.getHeight();
+        const pageHeight = this.getHeight();
         const marginHeight = this.getMainOuterHeight();
-        let curPagePreHeight = marginHeight;
-        for (let r = 0; r < rowList.length; r++) {
-          const row = rowList[r];
-          if (row.height + curPagePreHeight > height2 || ((_b = rowList[r - 1]) == null ? void 0 : _b.isPageBreak)) {
-            curPagePreHeight = marginHeight + row.height;
+        let accumulatedPageHeight = marginHeight;
+        for (let rowIndex = 0; rowIndex < rowList.length; rowIndex++) {
+          const row = rowList[rowIndex];
+          const isPageBreakBefore = (_b = rowList[rowIndex - 1]) == null ? void 0 : _b.isPageBreak;
+          if (row.height + accumulatedPageHeight > pageHeight || isPageBreakBefore) {
+            accumulatedPageHeight = marginHeight + row.height;
           } else {
-            curPagePreHeight += row.height;
+            accumulatedPageHeight += row.height;
           }
         }
-        const rowMarginHeight = rowMargin * 2 * scale;
-        if (curPagePreHeight + rowMarginHeight + elementHeight > height2) {
-          const trList2 = element.trList;
+        const tableRowMarginHeight = rowMargin * 2 * scale;
+        const tableExceedsPage = accumulatedPageHeight + tableRowMarginHeight + metrics.height > pageHeight;
+        if (tableExceedsPage) {
           let deleteStart = 0;
           let deleteCount = 0;
-          let preTrHeight = 0;
-          if (trList2.length > 1) {
-            for (let r = 0; r < trList2.length; r++) {
-              const tr = trList2[r];
+          let accumulatedTrHeight = 0;
+          if (trList.length > 1) {
+            for (let rowIndex = 0; rowIndex < trList.length; rowIndex++) {
+              const tr = trList[rowIndex];
               const trHeight = tr.height * scale;
-              if (curPagePreHeight + rowMarginHeight + preTrHeight + trHeight > height2) {
-                if (((_c = element.colgroup) == null ? void 0 : _c.length) !== tr.tdList.length) {
+              const trExceedsPage = accumulatedPageHeight + tableRowMarginHeight + accumulatedTrHeight + trHeight > pageHeight;
+              if (trExceedsPage) {
+                const isSpannedRow = ((_c = element.colgroup) == null ? void 0 : _c.length) !== tr.tdList.length;
+                if (isSpannedRow)
                   deleteCount = 0;
+                else {
+                  deleteStart = rowIndex;
+                  deleteCount = trList.length - deleteStart;
                 }
                 break;
-              } else {
-                deleteStart = r + 1;
-                deleteCount = trList2.length - deleteStart;
-                preTrHeight += trHeight;
               }
+              deleteStart = rowIndex + 1;
+              deleteCount = trList.length - deleteStart;
+              accumulatedTrHeight += trHeight;
             }
           }
           if (deleteCount) {
-            const cloneTrList = trList2.splice(deleteStart, deleteCount);
-            const cloneTrHeight = cloneTrList.reduce((pre, cur) => pre + cur.height, 0);
+            const cloneTrList = trList.splice(deleteStart, deleteCount);
+            const tdList = cloneTrList[0].tdList;
+            const [currentPageTdList, nextPageTdList] = this.splitTrListByPageHeight(tdList, pageHeight - (accumulatedPageHeight + tableRowMarginHeight));
+            cloneTrList[0].tdList = nextPageTdList;
+            const tr = deepClone(trList[0]);
+            tr.height = currentPageTdList.reduce((pre, cur) => pre + (cur.height || 0), 0);
+            tr.tdList = currentPageTdList;
+            const cloneTrHeight = cloneTrList[0].tdList.reduce((pre, cur) => pre + (cur.height || 0), 0);
             element.height -= cloneTrHeight;
             metrics.height -= cloneTrHeight;
             metrics.boundingBoxDescent -= cloneTrHeight;
             const cloneElement = deepClone(element);
             cloneElement.trList = cloneTrList;
-            cloneElement.id = getUUID();
+            cloneElement.id = element.id;
             this.spliceElementList(elementList, i + 1, 0, cloneElement);
             const positionContext = this.position.getPositionContext();
-            if (positionContext.isTable && positionContext.trIndex === deleteStart) {
+            const splitAtCursor = positionContext.isTable && positionContext.trIndex === deleteStart;
+            if (splitAtCursor) {
               positionContext.index += 1;
               positionContext.trIndex = 0;
               this.position.setPositionContext(positionContext);
@@ -11702,14 +11713,14 @@ class Draw {
           }
         }
       } else if (element.type === ElementType.SEPARATOR) {
-        element.width = availableWidth;
-        metrics.width = availableWidth;
+        element.width = availableRowWidth;
+        metrics.width = availableRowWidth;
         metrics.height = defaultSize;
         metrics.boundingBoxAscent = -rowMargin;
         metrics.boundingBoxDescent = -rowMargin;
       } else if (element.type === ElementType.PAGE_BREAK) {
-        element.width = availableWidth;
-        metrics.width = availableWidth;
+        element.width = availableRowWidth;
+        metrics.width = availableRowWidth;
         metrics.height = defaultSize;
       } else if (element.type === ElementType.CHECKBOX || element.controlComponent === ControlComponent.CHECKBOX) {
         const { width, height: height2, gap } = this.options.checkbox;
@@ -11723,18 +11734,15 @@ class Draw {
         metrics.boundingBoxDescent = 0;
         metrics.boundingBoxAscent = metrics.height;
       } else if (element.type === ElementType.BLOCK) {
-        if (!element.width) {
-          metrics.width = availableWidth;
-        } else {
-          const elementWidth = element.width * scale;
-          metrics.width = Math.min(elementWidth, availableWidth);
-        }
+        const elementWidth = element.width ? element.width * scale : availableRowWidth;
+        metrics.width = Math.min(elementWidth, availableRowWidth);
         metrics.height = element.height * scale;
         metrics.boundingBoxDescent = metrics.height;
         metrics.boundingBoxAscent = 0;
       } else {
         const size = element.size || defaultSize;
-        if (element.type === ElementType.SUPERSCRIPT || element.type === ElementType.SUBSCRIPT) {
+        const isSuperOrSubscript = element.type === ElementType.SUPERSCRIPT || element.type === ElementType.SUBSCRIPT;
+        if (isSuperOrSubscript) {
           element.actualSize = Math.ceil(size * 0.6);
         }
         metrics.height = (element.actualSize || size) * scale;
@@ -11752,7 +11760,8 @@ class Draw {
           metrics.boundingBoxDescent += metrics.height / 2;
         }
       }
-      const ascent = element.imgDisplay !== ImageDisplay.INLINE && element.type === ElementType.IMAGE || element.type === ElementType.LATEX ? metrics.height + rowMargin : metrics.boundingBoxAscent + rowMargin;
+      const isImageOrLatexBlock = element.imgDisplay !== ImageDisplay.INLINE && element.type === ElementType.IMAGE || element.type === ElementType.LATEX;
+      const ascent = isImageOrLatexBlock ? metrics.height + rowMargin : metrics.boundingBoxAscent + rowMargin;
       const height = rowMargin + metrics.boundingBoxAscent + metrics.boundingBoxDescent + rowMargin;
       const rowElement = Object.assign(element, {
         metrics,
@@ -11760,17 +11769,17 @@ class Draw {
       });
       const preElement = elementList[i - 1];
       let nextElement = elementList[i + 1];
-      let curRowWidth = curRow.width + metrics.width;
-      if (this.options.wordBreak === WordBreak.BREAK_WORD) {
-        if ((!(preElement == null ? void 0 : preElement.type) || (preElement == null ? void 0 : preElement.type) === ElementType.TEXT) && (!element.type || element.type === ElementType.TEXT)) {
-          const word = `${(preElement == null ? void 0 : preElement.value) || ""}${element.value}`;
-          if (WORD_LIKE_REG.test(word)) {
-            const { width, endElement } = this.textParticle.measureWord(ctx, elementList, i);
-            curRowWidth += width;
-            nextElement = endElement;
-          }
-          curRowWidth += this.textParticle.measurePunctuationWidth(ctx, nextElement);
+      let curRowWidth = currentRow.width + metrics.width;
+      const isBreakWord = this.options.wordBreak === WordBreak.BREAK_WORD;
+      const isBothText = (!(preElement == null ? void 0 : preElement.type) || (preElement == null ? void 0 : preElement.type) === ElementType.TEXT) && (!element.type || element.type === ElementType.TEXT);
+      if (isBreakWord && isBothText) {
+        const adjacentWord = `${(preElement == null ? void 0 : preElement.value) || ""}${element.value}`;
+        if (WORD_LIKE_REG.test(adjacentWord)) {
+          const { width, endElement } = this.textParticle.measureWord(ctx, elementList, i);
+          curRowWidth += width;
+          nextElement = endElement;
         }
+        curRowWidth += this.textParticle.measurePunctuationWidth(ctx, nextElement);
       }
       if (element.listId) {
         if (element.listId !== listId) {
@@ -11780,19 +11789,21 @@ class Draw {
         }
       }
       listId = element.listId;
-      if (element.type === ElementType.TABLE || (preElement == null ? void 0 : preElement.type) === ElementType.TABLE || (preElement == null ? void 0 : preElement.type) === ElementType.BLOCK || element.type === ElementType.BLOCK || (preElement == null ? void 0 : preElement.imgDisplay) === ImageDisplay.INLINE || element.imgDisplay === ImageDisplay.INLINE || curRowWidth > availableWidth || i !== 0 && element.value === ZERO || (preElement == null ? void 0 : preElement.listId) !== element.listId) {
-        if (curRow.startIndex === 0 && curRow.elementList.length === 1 && (INLINE_ELEMENT_TYPE.includes(element.type) || element.listId)) {
-          curRow.height = defaultBasicRowMarginHeight;
+      const mustBreakRow = element.type === ElementType.TABLE || (preElement == null ? void 0 : preElement.type) === ElementType.TABLE || (preElement == null ? void 0 : preElement.type) === ElementType.BLOCK || element.type === ElementType.BLOCK || (preElement == null ? void 0 : preElement.imgDisplay) === ImageDisplay.INLINE || element.imgDisplay === ImageDisplay.INLINE || curRowWidth > availableRowWidth || i !== 0 && element.value === ZERO || (preElement == null ? void 0 : preElement.listId) !== element.listId;
+      if (mustBreakRow) {
+        const isLeadingEmptyRow = currentRow.startIndex === 0 && currentRow.elementList.length === 1 && (INLINE_ELEMENT_TYPE.includes(element.type) || element.listId);
+        if (isLeadingEmptyRow) {
+          currentRow.height = defaultBasicRowMarginHeight;
         }
-        if ((preElement == null ? void 0 : preElement.rowFlex) === RowFlex.ALIGNMENT && curRowWidth > availableWidth) {
-          const gap = (availableWidth - curRow.width) / curRow.elementList.length;
-          for (let e = 0; e < curRow.elementList.length; e++) {
-            const el = curRow.elementList[e];
-            el.metrics.width += gap;
+        const shouldJustify = (preElement == null ? void 0 : preElement.rowFlex) === RowFlex.ALIGNMENT && curRowWidth > availableRowWidth;
+        if (shouldJustify) {
+          const gap = (availableRowWidth - currentRow.width) / currentRow.elementList.length;
+          for (let elIndex = 0; elIndex < currentRow.elementList.length; elIndex++) {
+            currentRow.elementList[elIndex].metrics.width += gap;
           }
-          curRow.width = availableWidth;
+          currentRow.width = availableRowWidth;
         }
-        const row = {
+        const newRow = {
           width: metrics.width,
           height,
           startIndex: i,
@@ -11802,18 +11813,18 @@ class Draw {
           isPageBreak: element.type === ElementType.PAGE_BREAK
         };
         if (element.listId) {
-          row.isList = true;
-          row.offsetX = listStyleMap.get(element.listId);
-          row.listIndex = listIndex;
+          newRow.isList = true;
+          newRow.offsetX = listStyleMap.get(element.listId);
+          newRow.listIndex = listIndex;
         }
-        rowList.push(row);
+        rowList.push(newRow);
       } else {
-        curRow.width += metrics.width;
-        if (curRow.height < height) {
-          curRow.height = height;
-          curRow.ascent = ascent;
+        currentRow.width += metrics.width;
+        if (currentRow.height < height) {
+          currentRow.height = height;
+          currentRow.ascent = ascent;
         }
-        curRow.elementList.push(rowElement);
+        currentRow.elementList.push(rowElement);
       }
     }
     return rowList;
@@ -11863,7 +11874,7 @@ class Draw {
     this.textParticle.complete();
   }
   drawRow(ctx, payload) {
-    const { rowList, pageNo, elementList, positionList, startIndex, zone } = payload;
+    const { rowList, pageNo, elementList, positionList: positionList2, startIndex, zone } = payload;
     const { scale, tdPadding, defaultBasicRowMarginHeight, defaultRowMargin } = this.options;
     const { isCrossRowCol, tableId } = this.range.getRange();
     let index2 = startIndex;
@@ -11879,7 +11890,7 @@ class Draw {
       for (let j = 0; j < curRow.elementList.length; j++) {
         const element = curRow.elementList[j];
         const metrics = element.metrics;
-        const { ascent: offsetY, coordinate: { leftTop: [x, y] } } = positionList[curRow.startIndex + j];
+        const { ascent: offsetY, coordinate: { leftTop: [x, y] } } = positionList2[curRow.startIndex + j];
         const preElement = curRow.elementList[j - 1];
         if (element.highlight) {
           if (preElement && preElement.highlight && preElement.highlight !== element.highlight) {
@@ -11992,7 +12003,7 @@ class Draw {
         }
       }
       if (curRow.isList) {
-        this.listParticle.drawListStyle(ctx, curRow, positionList[curRow.startIndex]);
+        this.listParticle.drawListStyle(ctx, curRow, positionList2[curRow.startIndex]);
       }
       this._drawRichText(ctx);
       if (rangeRecord.width && rangeRecord.height) {
@@ -12000,7 +12011,7 @@ class Draw {
         this.range.render(ctx, x, y, width, height);
       }
       if (isCrossRowCol && tableRangeElement && tableRangeElement.id === tableId) {
-        const { coordinate: { leftTop: [x, y] } } = positionList[curRow.startIndex];
+        const { coordinate: { leftTop: [x, y] } } = positionList2[curRow.startIndex];
         this.tableParticle.drawRange(ctx, tableRangeElement, x, y);
       }
     }
@@ -12012,7 +12023,7 @@ class Draw {
     this.blockParticle.clear();
   }
   _drawPage(payload) {
-    const { elementList, positionList, rowList, pageNo } = payload;
+    const { elementList, positionList: positionList2, rowList, pageNo } = payload;
     const { inactiveAlpha, pageMode, header, footer, pageNumber } = this.options;
     const innerWidth = this.getInnerWidth();
     const ctx = this.ctxList[pageNo];
@@ -12023,7 +12034,7 @@ class Draw {
     const index2 = rowList[0].startIndex;
     this.drawRow(ctx, {
       elementList,
-      positionList,
+      positionList: positionList2,
       rowList,
       pageNo,
       startIndex: index2,
@@ -12056,7 +12067,7 @@ class Draw {
     (_a = this.lazyRenderIntersectionObserver) == null ? void 0 : _a.disconnect();
   }
   _lazyRender() {
-    const positionList = this.position.getOriginalMainPositionList();
+    const positionList2 = this.position.getOriginalMainPositionList();
     const elementList = this.getOriginalMainElementList();
     this._disconnectLazyRender();
     this.lazyRenderIntersectionObserver = new IntersectionObserver((entries) => {
@@ -12065,7 +12076,7 @@ class Draw {
           const index2 = Number(entry.target.dataset.index);
           this._drawPage({
             elementList,
-            positionList,
+            positionList: positionList2,
             rowList: this.pageRowList[index2],
             pageNo: index2
           });
@@ -12077,12 +12088,12 @@ class Draw {
     });
   }
   _immediateRender() {
-    const positionList = this.position.getOriginalMainPositionList();
+    const positionList2 = this.position.getOriginalMainPositionList();
     const elementList = this.getOriginalMainElementList();
     for (let i = 0; i < this.pageRowList.length; i++) {
       this._drawPage({
         elementList,
-        positionList,
+        positionList: positionList2,
         rowList: this.pageRowList[i],
         pageNo: i
       });
@@ -12135,7 +12146,7 @@ class Draw {
     }
     const positionContext = this.position.getPositionContext();
     if (isSetCursor) {
-      const positionList = this.position.getPositionList();
+      const positionList2 = this.position.getPositionList();
       if (positionContext.isTable) {
         const { index: index2, trIndex, tdIndex } = positionContext;
         const elementList = this.getOriginalElementList();
@@ -12146,7 +12157,7 @@ class Draw {
         const tablePosition = tablePositionList == null ? void 0 : tablePositionList[curIndex];
         this.position.setCursorPosition(tablePosition || null);
       } else {
-        this.position.setCursorPosition(curIndex !== void 0 ? positionList[curIndex] : null);
+        this.position.setCursorPosition(curIndex !== void 0 ? positionList2[curIndex] : null);
       }
       this.cursor.drawCursor();
     }
@@ -12199,6 +12210,82 @@ class Draw {
     this.globalEvent.removeEvent();
     this.scrollObserver.removeEvent();
     this.selectionObserver.removeEvent();
+  }
+  splitTableRowsByAvailableHeight(tableElement, elementList, tableIndex, deleteStart, occupiedPageHeight) {
+  }
+  splitTrListByPageHeight(tdList, availablePageHeight) {
+    var _a, _b;
+    const currentPageTdList = [];
+    const nextPageTdList = [];
+    const currentPageNo = (_b = (_a = tdList[0] || []) == null ? void 0 : _a(positionList[0] || [])) == null ? void 0 : _b.pageNo;
+    const nextPageNo = currentPageNo + 1;
+    for (const td of tdList) {
+      const currentTd = deepClone(td);
+      const nextTd = deepClone(td);
+      const currentRowList = [];
+      const overflowRowList = [];
+      let accumulatedHeight = 0;
+      for (const row of td.rowList || []) {
+        const rowHeight = row.height || 0;
+        const canFitInCurrentPage = accumulatedHeight + rowHeight <= availablePageHeight;
+        if (canFitInCurrentPage) {
+          currentRowList.push(row);
+          accumulatedHeight += rowHeight;
+        } else {
+          overflowRowList.push(row);
+        }
+      }
+      currentTd.rowList = this.updateRowList(currentRowList);
+      currentTd.value = this.rebuildValueFromRowList(currentTd.rowList);
+      currentTd.positionList = this.rebuildPositionListFromRowList(currentTd.rowList, currentPageNo);
+      currentTd.height = this.calculateRowListHeight(currentTd.rowList);
+      currentTd.mainHeight = currentTd.height;
+      currentTd.realHeight = currentTd.height;
+      currentTd.realMinHeight = currentTd.height;
+      nextTd.rowList = this.updateRowList(overflowRowList);
+      nextTd.value = overflowRowList.length ? this.rebuildValueFromRowList(nextTd.rowList) : [{ value: "" }];
+      nextTd.positionList = this.rebuildPositionListFromRowList(nextTd.rowList, nextPageNo);
+      nextTd.height = this.calculateRowListHeight(nextTd.rowList);
+      nextTd.mainHeight = nextTd.height;
+      nextTd.realHeight = nextTd.height;
+      nextTd.realMinHeight = nextTd.height;
+      currentPageTdList.push(currentTd);
+      nextPageTdList.push(nextTd);
+    }
+    return [currentPageTdList, nextPageTdList];
+  }
+  updateRowList(rowList) {
+    return rowList.map((row, rowIndex) => {
+      return __spreadProps(__spreadValues({}, row), {
+        startIndex: rowIndex,
+        isPageBreak: false
+      });
+    });
+  }
+  rebuildValueFromRowList(rowList) {
+    return rowList.flatMap((row) => (row.elementList || []).map((element) => __spreadValues({}, element)));
+  }
+  rebuildPositionListFromRowList(rowList, pageNo) {
+    const positionList2 = [];
+    let globalIndex = 0;
+    rowList.forEach((row, rowNo) => {
+      const elementList = row.elementList || [];
+      elementList.forEach((element, elementIndex) => {
+        const position = __spreadValues({}, element.position || {});
+        position.pageNo = pageNo;
+        position.rowNo = rowNo;
+        position.rowIndex = rowNo;
+        position.index = globalIndex;
+        position.isFirstLetter = elementIndex === 0;
+        position.isLastLetter = elementIndex === elementList.length - 1;
+        positionList2.push(position);
+        globalIndex++;
+      });
+    });
+    return positionList2;
+  }
+  calculateRowListHeight(rowList) {
+    return rowList.reduce((totalHeight, row) => totalHeight + (row.height || 0), 0);
   }
 }
 class Command {
@@ -12294,6 +12381,7 @@ class Command {
     __publicField(this, "getSearchNavigateInfo");
     __publicField(this, "getContentStyles");
     __publicField(this, "executeGlobalHyperlink");
+    __publicField(this, "getHyperlinkRange");
     this.executeMode = adapt.mode.bind(adapt);
     this.executeCut = adapt.cut.bind(adapt);
     this.executeCopy = adapt.copy.bind(adapt);
@@ -12385,6 +12473,7 @@ class Command {
     this.getPaperMargin = adapt.getPaperMargin.bind(adapt);
     this.getSearchNavigateInfo = adapt.getSearchNavigateInfo.bind(adapt);
     this.getContentStyles = adapt.getContentStyles.bind(adapt);
+    this.getHyperlinkRange = adapt.getHyperlinkRange.bind(adapt);
   }
 }
 var dialog = "";
@@ -13017,10 +13106,10 @@ class CommandAdapt {
     const rangeRow = this.range.getRangeRow();
     if (!rangeRow)
       return;
-    const positionList = this.position.getPositionList();
+    const positionList2 = this.position.getPositionList();
     const elementList = this.draw.getElementList();
-    for (let p = 0; p < positionList.length; p++) {
-      const position = positionList[p];
+    for (let p = 0; p < positionList2.length; p++) {
+      const position = positionList2[p];
       const rowSet = rangeRow.get(position.pageNo);
       if (!rowSet)
         continue;
@@ -13042,10 +13131,10 @@ class CommandAdapt {
     const rangeRow = this.range.getRangeRow();
     if (!rangeRow)
       return;
-    const positionList = this.position.getPositionList();
+    const positionList2 = this.position.getPositionList();
     const elementList = this.draw.getElementList();
-    for (let p = 0; p < positionList.length; p++) {
-      const position = positionList[p];
+    for (let p = 0; p < positionList2.length; p++) {
+      const position = positionList2[p];
       const rowSet = rangeRow.get(position.pageNo);
       if (!rowSet)
         continue;
@@ -13071,8 +13160,8 @@ class CommandAdapt {
     const elementList = this.draw.getElementList();
     let offsetX = 0;
     if ((_a = elementList[startIndex]) == null ? void 0 : _a.listId) {
-      const positionList = this.position.getPositionList();
-      const { rowIndex } = positionList[startIndex];
+      const positionList2 = this.position.getPositionList();
+      const { rowIndex } = positionList2[startIndex];
       const rowList = this.draw.getRowList();
       const row2 = rowList[rowIndex];
       offsetX = (row2 == null ? void 0 : row2.offsetX) || 0;
@@ -14330,9 +14419,9 @@ class CommandAdapt {
     const elementList = this.draw.getElementList();
     const startElement = pickElementAttr(elementList[isCollapsed ? startIndex : startIndex + 1]);
     const endElement = pickElementAttr(elementList[endIndex]);
-    const positionList = this.position.getPositionList();
-    const startPageNo = positionList[startIndex].pageNo;
-    const endPageNo = positionList[endIndex].pageNo;
+    const positionList2 = this.position.getPositionList();
+    const startPageNo = positionList2[startIndex].pageNo;
+    const endPageNo = positionList2[endIndex].pageNo;
     return deepClone({
       isCollapsed,
       startElement,
@@ -15706,6 +15795,9 @@ class EventBus {
   }
 }
 const _DOMEventHandlers = class {
+  static getCommand() {
+    return _DOMEventHandlers.getEditorInstance().command;
+  }
   static getEditorInstance() {
     if (!_DOMEventHandlers.instance) {
       throw new Error(`Editor is not yet registered. Make sure initialization registers editor prior to usage.`);
@@ -15721,143 +15813,91 @@ const _DOMEventHandlers = class {
       }
     }
     _DOMEventHandlers.instance = new Editor(container, data2, options);
-    _DOMEventHandlers.instance.command.executeSetLocale("en");
+    _DOMEventHandlers.getCommand().executeSetLocale("en");
     _DOMEventHandlers.instance.register.langMap("en", en);
     return _DOMEventHandlers.instance;
   }
   static handleUndo() {
-    _DOMEventHandlers.getEditorInstance().command.executeUndo();
+    _DOMEventHandlers.undo();
   }
   static handleRedo() {
-    _DOMEventHandlers.getEditorInstance().command.executeRedo();
+    _DOMEventHandlers.redo();
   }
   static handleBold() {
-    _DOMEventHandlers.getEditorInstance().command.executeBold();
+    _DOMEventHandlers.bold();
   }
   static handleItalic() {
-    _DOMEventHandlers.getEditorInstance().command.executeItalic();
+    _DOMEventHandlers.italic();
   }
   static handleUnderline() {
-    _DOMEventHandlers.getEditorInstance().command.executeUnderline();
+    _DOMEventHandlers.underline();
   }
   static handleStrikeout() {
-    _DOMEventHandlers.getEditorInstance().command.executeStrikeout();
+    _DOMEventHandlers.strikeout();
   }
   static handleSuperscript() {
-    _DOMEventHandlers.getEditorInstance().command.executeSuperscript();
+    _DOMEventHandlers.superscript();
   }
   static handleSubscript() {
-    _DOMEventHandlers.getEditorInstance().command.executeSubscript();
+    _DOMEventHandlers.subscript();
   }
   static handleFontFamily(fontFamily) {
-    _DOMEventHandlers.getEditorInstance().command.executeFont(fontFamily);
+    _DOMEventHandlers.font(fontFamily);
   }
   static handleAlign(alignment) {
-    switch (alignment) {
-      case RowFlex.LEFT: {
-        _DOMEventHandlers.getEditorInstance().command.executeRowFlex(RowFlex.LEFT);
-        break;
-      }
-      case RowFlex.RIGHT: {
-        _DOMEventHandlers.getEditorInstance().command.executeRowFlex(RowFlex.RIGHT);
-        break;
-      }
-      case RowFlex.CENTER: {
-        _DOMEventHandlers.getEditorInstance().command.executeRowFlex(RowFlex.CENTER);
-        break;
-      }
-      case RowFlex.ALIGNMENT: {
-        _DOMEventHandlers.getEditorInstance().command.executeRowFlex(RowFlex.ALIGNMENT);
-        break;
-      }
-      default:
-        _DOMEventHandlers.getEditorInstance().command.executeRowFlex(RowFlex.LEFT);
-    }
+    _DOMEventHandlers.rowFlex(alignment);
   }
   static handleList(listType, listStyle) {
-    _DOMEventHandlers.getEditorInstance().command.executeList(listType, listStyle);
+    _DOMEventHandlers.list(listType, listStyle);
   }
   static setFontColor(payload) {
-    _DOMEventHandlers.getEditorInstance().command.executeColor(payload);
+    _DOMEventHandlers.color(payload);
   }
   static highlightText(payload) {
-    _DOMEventHandlers.getEditorInstance().command.executeHighlight(payload);
+    _DOMEventHandlers.highlight(payload);
   }
   static setFont(payload) {
-    _DOMEventHandlers.getEditorInstance().command.executeFont(payload);
+    _DOMEventHandlers.font(payload);
   }
   static setSize(payload) {
-    _DOMEventHandlers.getEditorInstance().command.executeSize(payload);
+    _DOMEventHandlers.size(payload);
   }
   static increaseFontSize() {
-    _DOMEventHandlers.getEditorInstance().command.executeSizeAdd();
+    _DOMEventHandlers.sizeAdd();
   }
   static decreaseFontSize() {
-    _DOMEventHandlers.getEditorInstance().command.executeSizeMinus();
+    _DOMEventHandlers.sizeMinus();
   }
   static getContent() {
-    return _DOMEventHandlers.getEditorInstance().command.getValue();
+    return _DOMEventHandlers.getValue();
   }
   static setContent(payload) {
-    _DOMEventHandlers.getEditorInstance().command.executeSetValue(payload);
+    _DOMEventHandlers.setValue(payload);
   }
   static createTable(payload) {
-    _DOMEventHandlers.getEditorInstance().command.executeInsertTable(payload.rowIndex, payload.colIndex);
+    _DOMEventHandlers.insertTable(payload.rowIndex, payload.colIndex);
   }
   static setTitle(payload) {
-    _DOMEventHandlers.getEditorInstance().command.executeTitle(payload);
+    _DOMEventHandlers.title(payload);
   }
   static getContentStyles() {
-    return _DOMEventHandlers.getEditorInstance().command.getContentStyles();
+    return _DOMEventHandlers.getCommand().getContentStyles();
   }
   static setImage(payload) {
-    _DOMEventHandlers.getEditorInstance().command.executeImage(payload);
+    _DOMEventHandlers.image(payload);
   }
   static createHyperLink() {
-    new Dialog({
-      title: "Link",
-      data: [
-        {
-          type: "text",
-          label: "Text",
-          name: "name",
-          required: true,
-          placeholder: "Enter text"
-        },
-        {
-          type: "text",
-          label: "URL",
-          name: "url",
-          required: true,
-          placeholder: "Enter URL"
-        }
-      ],
-      onConfirm: (payload) => {
-        var _a, _b;
-        const name = (_a = payload.find((p) => p.name === "name")) == null ? void 0 : _a.value;
-        if (!name)
-          return;
-        const url = (_b = payload.find((p) => p.name === "url")) == null ? void 0 : _b.value;
-        if (!url)
-          return;
-        _DOMEventHandlers.getEditorInstance().command.executeHyperlink({
-          type: ElementType.HYPERLINK,
-          value: "",
-          url,
-          valueList: name.split("").map((n) => ({
-            value: n,
-            size: 16
-          }))
-        });
-      }
-    });
+    _DOMEventHandlers.globalHyperlink();
+  }
+  static createGlobalHyperLink() {
+    _DOMEventHandlers.globalHyperlink();
   }
   static setHorizontalLine(payload) {
-    _DOMEventHandlers.getEditorInstance().command.executeSeparator(payload);
+    _DOMEventHandlers.separator(payload);
   }
   static setPaperMargins(payload) {
     const [topMargin, bottomMargin, leftMargin, rightMargin] = payload;
-    _DOMEventHandlers.getEditorInstance().command.executeSetPaperMargin([
+    _DOMEventHandlers.setPaperMargin([
       Number(topMargin),
       Number(rightMargin),
       Number(bottomMargin),
@@ -15865,11 +15905,283 @@ const _DOMEventHandlers = class {
     ]);
   }
   static getSelectedText() {
-    return _DOMEventHandlers.getEditorInstance().command.getRangeText();
+    return _DOMEventHandlers.getRangeText();
   }
   static insertElement(payload) {
-    const updatedPayload = [{ value: payload }];
-    _DOMEventHandlers.getEditorInstance().command.executeInsertElementList(updatedPayload);
+    _DOMEventHandlers.insertElementList([{ value: payload }]);
+  }
+  static mode(payload) {
+    _DOMEventHandlers.getCommand().executeMode(payload);
+  }
+  static cut() {
+    _DOMEventHandlers.getCommand().executeCut();
+  }
+  static copy() {
+    _DOMEventHandlers.getCommand().executeCopy();
+  }
+  static async paste() {
+    return _DOMEventHandlers.getCommand().executePaste();
+  }
+  static selectAll() {
+    _DOMEventHandlers.getCommand().executeSelectAll();
+  }
+  static backspace() {
+    _DOMEventHandlers.getCommand().executeBackspace();
+  }
+  static setRange(startIndex, endIndex) {
+    _DOMEventHandlers.getCommand().executeSetRange(startIndex, endIndex);
+  }
+  static undo() {
+    _DOMEventHandlers.getCommand().executeUndo();
+  }
+  static redo() {
+    _DOMEventHandlers.getCommand().executeRedo();
+  }
+  static painter(options) {
+    _DOMEventHandlers.getCommand().executePainter(options);
+  }
+  static applyPainterStyle() {
+    _DOMEventHandlers.getCommand().executeApplyPainterStyle();
+  }
+  static format() {
+    _DOMEventHandlers.getCommand().executeFormat();
+  }
+  static font(payload) {
+    _DOMEventHandlers.getCommand().executeFont(payload);
+  }
+  static size(payload) {
+    _DOMEventHandlers.getCommand().executeSize(payload);
+  }
+  static sizeAdd() {
+    _DOMEventHandlers.getCommand().executeSizeAdd();
+  }
+  static sizeMinus() {
+    _DOMEventHandlers.getCommand().executeSizeMinus();
+  }
+  static bold() {
+    _DOMEventHandlers.getCommand().executeBold();
+  }
+  static italic() {
+    _DOMEventHandlers.getCommand().executeItalic();
+  }
+  static underline() {
+    _DOMEventHandlers.getCommand().executeUnderline();
+  }
+  static strikeout() {
+    _DOMEventHandlers.getCommand().executeStrikeout();
+  }
+  static superscript() {
+    _DOMEventHandlers.getCommand().executeSuperscript();
+  }
+  static subscript() {
+    _DOMEventHandlers.getCommand().executeSubscript();
+  }
+  static color(payload) {
+    _DOMEventHandlers.getCommand().executeColor(payload);
+  }
+  static highlight(payload) {
+    _DOMEventHandlers.getCommand().executeHighlight(payload);
+  }
+  static title(payload) {
+    _DOMEventHandlers.getCommand().executeTitle(payload);
+  }
+  static list(listType, listStyle) {
+    _DOMEventHandlers.getCommand().executeList(listType, listStyle);
+  }
+  static rowFlex(payload) {
+    _DOMEventHandlers.getCommand().executeRowFlex(payload);
+  }
+  static rowMargin(payload) {
+    _DOMEventHandlers.getCommand().executeRowMargin(payload);
+  }
+  static insertTable(row, col) {
+    _DOMEventHandlers.getCommand().executeInsertTable(row, col);
+  }
+  static insertTableTopRow() {
+    _DOMEventHandlers.getCommand().executeInsertTableTopRow();
+  }
+  static insertTableBottomRow() {
+    _DOMEventHandlers.getCommand().executeInsertTableBottomRow();
+  }
+  static insertTableLeftCol() {
+    _DOMEventHandlers.getCommand().executeInsertTableLeftCol();
+  }
+  static insertTableRightCol() {
+    _DOMEventHandlers.getCommand().executeInsertTableRightCol();
+  }
+  static deleteTableRow() {
+    _DOMEventHandlers.getCommand().executeDeleteTableRow();
+  }
+  static deleteTableCol() {
+    _DOMEventHandlers.getCommand().executeDeleteTableCol();
+  }
+  static deleteTable() {
+    _DOMEventHandlers.getCommand().executeDeleteTable();
+  }
+  static mergeTableCell() {
+    _DOMEventHandlers.getCommand().executeMergeTableCell();
+  }
+  static cancelMergeTableCell() {
+    _DOMEventHandlers.getCommand().executeCancelMergeTableCell();
+  }
+  static tableTdVerticalAlign(payload) {
+    _DOMEventHandlers.getCommand().executeTableTdVerticalAlign(payload);
+  }
+  static tableBorderType(payload) {
+    _DOMEventHandlers.getCommand().executeTableBorderType(payload);
+  }
+  static tableTdBackgroundColor(payload) {
+    _DOMEventHandlers.getCommand().executeTableTdBackgroundColor(payload);
+  }
+  static tableTdBorderBgTop(payload) {
+    _DOMEventHandlers.getCommand().executeTableTdBorderBgTop(payload);
+  }
+  static tableTdBorderBgBottom(payload) {
+    _DOMEventHandlers.getCommand().executeTableTdBorderBgBottom(payload);
+  }
+  static tableTdBorderBgLeft(payload) {
+    _DOMEventHandlers.getCommand().executeTableTdBorderBgLeft(payload);
+  }
+  static tableTdBorderBgRight(payload) {
+    _DOMEventHandlers.getCommand().executeTableTdBorderBgRight(payload);
+  }
+  static tableTdBorderWidthTop(payload) {
+    _DOMEventHandlers.getCommand().executeTableTdBorderWidthTop(payload);
+  }
+  static tableTdBorderWidthLeft(payload) {
+    _DOMEventHandlers.getCommand().executeTableTdBorderWidthLeft(payload);
+  }
+  static tableTdBorderWidthBottom(payload) {
+    _DOMEventHandlers.getCommand().executeTableTdBorderWidthBottom(payload);
+  }
+  static tableTdBorderWidthRight(payload) {
+    _DOMEventHandlers.getCommand().executeTableTdBorderWidthRight(payload);
+  }
+  static hyperlink(payload) {
+    _DOMEventHandlers.getCommand().executeHyperlink(payload);
+  }
+  static getHyperlinkRange() {
+    return _DOMEventHandlers.getCommand().getHyperlinkRange();
+  }
+  static deleteHyperlink() {
+    _DOMEventHandlers.getCommand().executeDeleteHyperlink();
+  }
+  static cancelHyperlink() {
+    _DOMEventHandlers.getCommand().executeCancelHyperlink();
+  }
+  static editHyperlink(url) {
+    _DOMEventHandlers.getCommand().executeEditHyperlink(url);
+  }
+  static separator(payload) {
+    _DOMEventHandlers.getCommand().executeSeparator(payload);
+  }
+  static pageBreak() {
+    _DOMEventHandlers.getCommand().executePageBreak();
+  }
+  static addWatermark(payload) {
+    _DOMEventHandlers.getCommand().executeAddWatermark(payload);
+  }
+  static deleteWatermark() {
+    _DOMEventHandlers.getCommand().executeDeleteWatermark();
+  }
+  static image(payload) {
+    _DOMEventHandlers.getCommand().executeImage(payload);
+  }
+  static search(payload) {
+    _DOMEventHandlers.getCommand().executeSearch(payload);
+  }
+  static searchNavigatePre() {
+    _DOMEventHandlers.getCommand().executeSearchNavigatePre();
+  }
+  static searchNavigateNext() {
+    _DOMEventHandlers.getCommand().executeSearchNavigateNext();
+  }
+  static getSearchNavigateInfo() {
+    return _DOMEventHandlers.getCommand().getSearchNavigateInfo();
+  }
+  static replace(payload) {
+    _DOMEventHandlers.getCommand().executeReplace(payload);
+  }
+  static async print() {
+    return _DOMEventHandlers.getCommand().executePrint();
+  }
+  static replaceImageElement(payload) {
+    _DOMEventHandlers.getCommand().executeReplaceImageElement(payload);
+  }
+  static saveAsImageElement() {
+    _DOMEventHandlers.getCommand().executeSaveAsImageElement();
+  }
+  static changeImageDisplay(element, display) {
+    _DOMEventHandlers.getCommand().executeChangeImageDisplay(element, display);
+  }
+  static getImage(pixelRatio) {
+    return _DOMEventHandlers.getCommand().getImage(pixelRatio);
+  }
+  static getValue(options) {
+    return _DOMEventHandlers.getCommand().getValue(options);
+  }
+  static getHTML() {
+    return _DOMEventHandlers.getCommand().getHTML();
+  }
+  static getWordCount() {
+    return _DOMEventHandlers.getCommand().getWordCount();
+  }
+  static getRangeText() {
+    return _DOMEventHandlers.getCommand().getRangeText();
+  }
+  static getRangeContext() {
+    return _DOMEventHandlers.getCommand().getRangeContext();
+  }
+  static pageMode(payload) {
+    _DOMEventHandlers.getCommand().executePageMode(payload);
+  }
+  static pageScaleRecovery() {
+    _DOMEventHandlers.getCommand().executePageScaleRecovery();
+  }
+  static pageScaleMinus() {
+    _DOMEventHandlers.getCommand().executePageScaleMinus();
+  }
+  static pageScaleAdd() {
+    _DOMEventHandlers.getCommand().executePageScaleAdd();
+  }
+  static paperSize(width, height) {
+    _DOMEventHandlers.getCommand().executePaperSize(width, height);
+  }
+  static paperDirection(payload) {
+    _DOMEventHandlers.getCommand().executePaperDirection(payload);
+  }
+  static getPaperMargin() {
+    return _DOMEventHandlers.getCommand().getPaperMargin();
+  }
+  static setPaperMargin(payload) {
+    _DOMEventHandlers.getCommand().executeSetPaperMargin(payload);
+  }
+  static insertElementList(payload) {
+    _DOMEventHandlers.getCommand().executeInsertElementList(payload);
+  }
+  static appendElementList(elementList, options) {
+    _DOMEventHandlers.getCommand().executeAppendElementList(elementList, options);
+  }
+  static setValue(payload) {
+    _DOMEventHandlers.getCommand().executeSetValue(payload);
+  }
+  static removeControl() {
+    _DOMEventHandlers.getCommand().executeRemoveControl();
+  }
+  static setLocale(payload) {
+    _DOMEventHandlers.getCommand().executeSetLocale(payload);
+  }
+  static getCatalog() {
+    return _DOMEventHandlers.getCommand().getCatalog();
+  }
+  static locationCatalog(titleId) {
+    _DOMEventHandlers.getCommand().executeLocationCatalog(titleId);
+  }
+  static wordTool() {
+    _DOMEventHandlers.getCommand().executeWordTool();
+  }
+  static globalHyperlink() {
+    _DOMEventHandlers.getCommand().executeGlobalHyperlink();
   }
 };
 let DOMEventHandlers = _DOMEventHandlers;
