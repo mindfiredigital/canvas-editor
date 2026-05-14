@@ -18,8 +18,7 @@ import {
   IElement,
   IElementMetrics,
   IElementFillRect,
-  IElementStyle,
-  IElementPosition
+  IElementStyle
 } from '../../interface/Element'
 import { IRow, IRowElement } from '../../interface/Row'
 import { deepClone, getUUID, nextTick } from '../../utils'
@@ -82,7 +81,6 @@ import { Placeholder } from './frame/Placeholder'
 import { WORD_LIKE_REG } from '../../dataset/constant/Regular'
 import { EventBus } from '../event/eventbus/EventBus'
 import { EventBusMap } from '../../interface/EventBus'
-import { ITr } from '../../interface/table/Tr'
 import { ITd } from '../../interface/table/Td'
 
 export class Draw {
@@ -857,9 +855,16 @@ export class Draw {
         row => row.elementList
       )
     }
+    // Coalesce any pagination fragments on a clone so saved data describes
+    // one logical table without mutating the live elementList — mutating
+    // would desync positionList (no recompute follows getValue), crashing
+    // the next mousedown at getPositionByXY → `elementList[j].type` when
+    // positionList still indexes the spliced-out continuation element.
+    const mainClone = deepClone(mainElementList)
+    this._mergeTableFragments(mainClone, true)
     const data: IEditorData = {
       header: zipElementList(this.getHeaderElementList()),
-      main: zipElementList(mainElementList),
+      main: zipElementList(mainClone),
       footer: zipElementList(this.getFooterElementList())
     }
     return {
@@ -1028,8 +1033,24 @@ export class Draw {
         metrics.boundingBoxAscent = 0
       } else if (element.type === ElementType.TABLE) {
         const tdGap = tdPadding * 2
-        this.tableParticle.computeRowColInfo(element)
         const trList = element.trList!
+
+        // Reset every tr to its baseline height before re-deriving from
+        // current td content. Without this, tr.height inherits the prior
+        // render's inflated value; the shrink path requires every column
+        // sibling to have slack and silently no-ops when even one doesn't
+        // — fine for paste (single render, single layout) but accumulates
+        // gaps under repeated typing renders, especially on rows below
+        // the cell that just split to the next page.
+        for (let trIndex = 0; trIndex < trList.length; trIndex++) {
+          const tr = trList[trIndex]
+          const baseline = tr.minHeight || 0
+          tr.height = baseline
+          for (let tdIndex = 0; tdIndex < tr.tdList.length; tdIndex++) {
+            tr.tdList[tdIndex].height = baseline
+          }
+        }
+        this.tableParticle.computeRowColInfo(element)
 
         for (let trIndex = 0; trIndex < trList.length; trIndex++) {
           const tr = trList[trIndex]
@@ -1128,17 +1149,38 @@ export class Draw {
         }
 
         const tableRowMarginHeight = rowMargin * 2 * scale
+        // Multi-page table fragments (cloneElement created by a previous
+        // split iteration in this same compute pass) start on a fresh
+        // page. The accumulator built from the outer rowList still holds
+        // the previous fragment's near-full page-1 usage, which would
+        // shrink this fragment's budget to ~0 and break the split. If
+        // even the first tr can't fit on the current page's remainder,
+        // this table will start on the next page — reset the accumulator
+        // to that page's top so split math reflects a full-page budget.
+        const firstTrScaledHeight = (trList[0]?.height || 0) * scale
+        const tableStartsOnNewPage =
+          accumulatedPageHeight +
+            tableRowMarginHeight +
+            firstTrScaledHeight >
+          pageHeight
+        if (tableStartsOnNewPage) {
+          accumulatedPageHeight = marginHeight
+        }
         const tableExceedsPage =
           accumulatedPageHeight + tableRowMarginHeight + metrics.height >
           pageHeight
 
-        // --- table split ---
-        if (tableExceedsPage) {
+        // --- table split (only at top level — nested td.value never paginates) ---
+        const isTopLevel = elementList === this.elementList
+        if (tableExceedsPage && isTopLevel) {
           let deleteStart = 0
           let deleteCount = 0
           let accumulatedTrHeight = 0
 
-          if (trList.length > 1) {
+          // No `trList.length > 1` guard: a single-row continuation
+          // fragment (the common page2→3, page3→4, … case) still needs
+          // to be split when its sole row exceeds the remaining budget.
+          {
             for (let rowIndex = 0; rowIndex < trList.length; rowIndex++) {
               const tr = trList[rowIndex]
               const trHeight = tr.height * scale
@@ -1168,39 +1210,193 @@ export class Draw {
 
           if (deleteCount) {
             const cloneTrList = trList.splice(deleteStart, deleteCount)
-            const tdList = cloneTrList[0].tdList
+            const overflowTr = cloneTrList[0]
+            // Budget for splitting row = page - prior-page rows -
+            // table outer margin - earlier table rows on this page
+            const availableScaledHeight = Math.max(
+              0,
+              pageHeight -
+                accumulatedPageHeight -
+                tableRowMarginHeight -
+                accumulatedTrHeight
+            )
             const [currentPageTdList, nextPageTdList] =
               this.splitTrListByPageHeight(
-                tdList,
-                pageHeight - (accumulatedPageHeight + tableRowMarginHeight)
+                overflowTr.tdList,
+                availableScaledHeight,
+                scale
               )
-            cloneTrList[0].tdList = nextPageTdList
-            const tr = deepClone(trList[0])
-            tr.height = currentPageTdList.reduce(
-              (pre, cur) => pre + (cur.height || 0),
-              0
+            const hasOverflow = nextPageTdList.some(
+              td => (td.rowList?.length || 0) > 0
             )
-            tr.tdList = currentPageTdList
+            const onlyOneTrSplitting =
+              cloneTrList.length === 1 && !hasOverflow
+            if (onlyOneTrSplitting) {
+              // No real overflow content — put the row back unchanged
+              trList.push(overflowTr)
+              const newTableHeight = trList.reduce(
+                (pre, cur) => pre + cur.height,
+                0
+              )
+              element.height = newTableHeight
+              metrics.height = newTableHeight * scale
+              metrics.boundingBoxDescent = metrics.height
+              this.tableParticle.computeRowColInfo(element)
+            } else if (currentPageTdList.every(td => !td.rowList?.length)) {
+              // Nothing fits on current page. If splicing the overflow rows
+              // would leave element.trList empty (deleteStart === 0), undo
+              // the splice and let parent rowList pagination move the whole
+              // table to the next page — a table element must never have
+              // an empty trList or the renderer crashes.
+              if (trList.length === 0) {
+                trList.splice(deleteStart, 0, ...cloneTrList)
+                const restoredTableHeight = trList.reduce(
+                  (pre, cur) => pre + cur.height,
+                  0
+                )
+                element.height = restoredTableHeight
+                metrics.height = restoredTableHeight * scale
+                metrics.boundingBoxDescent = metrics.height
+                this.tableParticle.computeRowColInfo(element)
+              } else {
+              // At least one row stays on current page — fall back to
+              // whole-row move for the overflowing trs.
+              const cloneElement = deepClone(element)
+              cloneElement.trList = cloneTrList
+              cloneElement.height = cloneTrList.reduce(
+                (pre, cur) => pre + cur.height,
+                0
+              )
+              cloneElement.id = element.id
+              const newTableHeight = trList.reduce(
+                (pre, cur) => pre + cur.height,
+                0
+              )
+              element.height = newTableHeight
+              metrics.height = newTableHeight * scale
+              metrics.boundingBoxDescent = metrics.height
+              this.tableParticle.computeRowColInfo(element)
+              this.tableParticle.computeRowColInfo(cloneElement)
+              this.spliceElementList(elementList, i + 1, 0, cloneElement)
+              const positionContext = this.position.getPositionContext()
+              if (
+                positionContext.isTable &&
+                positionContext.trIndex! >= deleteStart
+              ) {
+                positionContext.index! += 1
+                positionContext.trIndex! -= deleteStart
+                this.position.setPositionContext(positionContext)
+              }
+              }
+            } else {
+              // Equalize all td heights within each split row so siblings
+              // of the overflowing cell don't render at stale bloated
+              // heights inherited from the original (pre-split) row.
+              const overflowTrHeight = Math.max(
+                overflowTr.minHeight || 0,
+                ...nextPageTdList.map(td => td.height || 0)
+              )
+              const splitTrHeight = Math.max(
+                overflowTr.minHeight || 0,
+                ...currentPageTdList.map(td => td.height || 0)
+              )
+              nextPageTdList.forEach(td => {
+                td.height = overflowTrHeight
+                td.mainHeight = overflowTrHeight
+                td.realHeight = overflowTrHeight
+                td.realMinHeight = overflowTrHeight
+              })
+              currentPageTdList.forEach(td => {
+                td.height = splitTrHeight
+                td.mainHeight = splitTrHeight
+                td.realHeight = splitTrHeight
+                td.realMinHeight = splitTrHeight
+              })
 
-            const cloneTrHeight = cloneTrList[0].tdList.reduce(
-              (pre, cur) => pre + (cur.height || 0),
-              0
-            )
-            element.height -= cloneTrHeight
-            metrics.height -= cloneTrHeight
-            metrics.boundingBoxDescent -= cloneTrHeight
-            const cloneElement = deepClone(element)
-            cloneElement.trList = cloneTrList
-            cloneElement.id = element.id
-            this.spliceElementList(elementList, i + 1, 0, cloneElement)
+              // Stamp a stable logical-row id on the row being split (once
+              // — preserved across every further fragmentation). Every
+              // fragment of this logical row will carry the same
+              // originalRowId so merge can pair them across any number of
+              // page boundaries without depending on mutable .id values.
+              if (!overflowTr.originalRowId) {
+                overflowTr.originalRowId = overflowTr.id
+              }
+              // Continuation row on next page keeps overflow content
+              overflowTr.tdList = nextPageTdList
+              overflowTr.height = overflowTrHeight
+              // Current-page portion of split row — push back into trList
+              const splitTr = deepClone(overflowTr)
+              splitTr.id = getUUID()
+              splitTr.tdList = currentPageTdList.map(td => ({
+                ...td,
+                id: getUUID()
+              }))
+              splitTr.height = splitTrHeight
+              splitTr.originalRowId = overflowTr.originalRowId
+              trList.push(splitTr)
 
-            const positionContext = this.position.getPositionContext()
-            const splitAtCursor =
-              positionContext.isTable && positionContext.trIndex === deleteStart
-            if (splitAtCursor) {
-              positionContext.index! += 1
-              positionContext.trIndex = 0
-              this.position.setPositionContext(positionContext)
+              const newTableHeight = trList.reduce(
+                (pre, cur) => pre + cur.height,
+                0
+              )
+              element.height = newTableHeight
+              metrics.height = newTableHeight * scale
+              metrics.boundingBoxDescent = metrics.height
+
+              const cloneElement = deepClone(element)
+              cloneElement.trList = cloneTrList
+              cloneElement.height = cloneTrList.reduce(
+                (pre, cur) => pre + cur.height,
+                0
+              )
+              cloneElement.id = element.id
+              this.tableParticle.computeRowColInfo(element)
+              this.tableParticle.computeRowColInfo(cloneElement)
+              this.spliceElementList(elementList, i + 1, 0, cloneElement)
+
+              // ---- Cursor / range migration ----
+              // When the cursor's row is the one being fragmented, decide
+              // whether the cursor stays on current page (in splitTr) or
+              // moves to the continuation (cloneElement.trList[0]) based
+              // on its value-index inside the split td.
+              const positionContext = this.position.getPositionContext()
+              const range = this.range.getRange()
+              if (
+                positionContext.isTable &&
+                positionContext.trIndex !== undefined
+              ) {
+                if (positionContext.trIndex === deleteStart) {
+                  const cursorTdIdx = positionContext.tdIndex
+                  const N = range.startIndex
+                  const endN = range.endIndex
+                  const currentTd =
+                    cursorTdIdx !== undefined
+                      ? currentPageTdList[cursorTdIdx]
+                      : undefined
+                  const currentLen = currentTd?.value?.length ?? 0
+                  if (cursorTdIdx !== undefined && N >= 0 && N < currentLen) {
+                    // Cursor falls in current-page portion — stays in
+                    // element's last (splitTr) row
+                    positionContext.trIndex = trList.length - 1
+                    this.position.setPositionContext(positionContext)
+                  } else {
+                    // Cursor in overflow portion — migrate to cloneElement
+                    positionContext.index! += 1
+                    positionContext.trIndex = 0
+                    this.position.setPositionContext(positionContext)
+                    if (cursorTdIdx !== undefined && N >= 0) {
+                      // ZERO-prefix in nextTd.value shifts indices by +1
+                      const newStart = Math.max(0, N - currentLen + 1)
+                      const newEnd = Math.max(0, endN - currentLen + 1)
+                      this.range.setRange(newStart, newEnd)
+                    }
+                  }
+                } else if (positionContext.trIndex > deleteStart) {
+                  positionContext.index! += 1
+                  positionContext.trIndex -= deleteStart
+                  this.position.setPositionContext(positionContext)
+                }
+              }
             }
           }
         }
@@ -1776,6 +1972,9 @@ export class Draw {
           this.footer.compute()
         }
       }
+      // Coalesce continuation fragments left by prior render so pagination
+      // is recomputed from a clean model on every keystroke.
+      this._mergeTableFragments(this.elementList)
       // Row Information
       this.rowList = this.computeRowList(innerWidth, this.elementList)
       // Page Information
@@ -1787,6 +1986,18 @@ export class Draw {
       if (searchKeyword) {
         this.search.compute(searchKeyword)
       }
+    }
+    // Re-sync curIndex with the range after compute: table pagination may
+    // have migrated the caret to a continuation cell, in which case the
+    // original curIndex passed by the input handler is stale and would
+    // point past the new (shorter) cell's positionList → cursorPosition
+    // would be set to null, silently swallowing the next keystroke.
+    const postComputeRange = this.range.getRange()
+    if (
+      postComputeRange.startIndex >= 0 &&
+      postComputeRange.startIndex === postComputeRange.endIndex
+    ) {
+      curIndex = postComputeRange.startIndex
     }
     // Clear cursor and other side effects
     this.imageObserver.clearAll()
@@ -1892,163 +2103,250 @@ export class Draw {
     this.scrollObserver.removeEvent()
     this.selectionObserver.removeEvent()
   }
-  public splitTableRowsByAvailableHeight(
-    tableElement: IElement,
-    elementList: IElement[],
-    tableIndex: number,
-    deleteStart: number,
-    occupiedPageHeight: number
-  ) {}
+
+  /**
+   * Coalesce table fragments produced by cross-page row splitting back into
+   * the single logical table. Runs before every compute pass so split is
+   * idempotent and re-pagination uses fresh, up-to-date content.
+   *
+   * Two consecutive elements are considered fragments of the same logical
+   * table when both are TABLE-typed and share the same `id`. The last row
+   * of the first fragment and the first row of the second fragment are the
+   * two halves of a single physical row that was split mid-content; their
+   * per-td `value` arrays are concatenated back, preserving cell ids.
+   *
+   * Cursor (positionContext) and selection (range) are migrated so the
+   * caret stays exactly where the user left it.
+   */
+  public mergeTableFragments(elementList: IElement[], skipStateMutation = false) {
+    return this._mergeTableFragments(elementList, skipStateMutation)
+  }
+
+  private _mergeTableFragments(elementList: IElement[], skipStateMutation = false) {
+    let i = 0
+    while (i < elementList.length - 1) {
+      const cur = elementList[i]
+      const next = elementList[i + 1]
+      const isMergeable =
+        cur.type === ElementType.TABLE &&
+        next.type === ElementType.TABLE &&
+        !!cur.id &&
+        cur.id === next.id &&
+        !!cur.trList?.length &&
+        !!next.trList?.length
+      if (!isMergeable) {
+        i++
+        continue
+      }
+
+      const curTrList = cur.trList!
+      const nextTrList = next.trList!
+      const lastTrIndex = curTrList.length - 1
+      const lastTr = curTrList[lastTrIndex]
+      const firstTr = nextTrList[0]
+      const sameColCount = lastTr.tdList.length === firstTr.tdList.length
+
+      // Fragment-pair test: both rows carry the same originalRowId iff
+      // they're two halves of the same logical row that was mid-row
+      // split across a page boundary — those need td.value concatenation.
+      // Whole-row moves leave originalRowId unset; those rows are
+      // independent logical rows that must NOT be concatenated, but they
+      // STILL need to be reunited into one table element so the outer
+      // flow doesn't draw rowMargin between them (which renders as a
+      // visible gap on the same page).
+      const isFragmentPair =
+        !!lastTr.originalRowId &&
+        lastTr.originalRowId === firstTr.originalRowId
+
+      const positionContext = this.position.getPositionContext()
+      const range = this.range.getRange()
+      const cursorTdValueOffsets: Record<number, number> = {}
+
+      if (isFragmentPair && sameColCount) {
+        for (let t = 0; t < firstTr.tdList.length; t++) {
+          const lastTd = lastTr.tdList[t]
+          const firstTd = firstTr.tdList[t]
+          const lastValue = lastTd.value || []
+          const firstValue = firstTd.value || []
+          // Avoid duplicating the cell-start ZERO marker when concatenating
+          const skipFirstZero =
+            lastValue.length > 0 && firstValue[0]?.value === ZERO
+          const offset = lastValue.length - (skipFirstZero ? 1 : 0)
+          firstTd.value = [
+            ...lastValue,
+            ...firstValue.slice(skipFirstZero ? 1 : 0)
+          ]
+          // Invalidate cached layout so it's recomputed against full content
+          firstTd.rowList = undefined
+          firstTd.positionList = undefined
+          cursorTdValueOffsets[t] = offset
+        }
+        // Replace the split row with the merged continuation row, then
+        // append the rest of next's rows
+        cur.trList = [
+          ...curTrList.slice(0, -1),
+          firstTr,
+          ...nextTrList.slice(1)
+        ]
+        // Retain firstTr.originalRowId: in a multi-page split chain
+        // (page1 → page2 → page3 → …), firstTr is itself an intermediate
+        // fragment that still needs to merge with the next element via
+        // originalRowId. Once the terminal merge completes, the surviving
+        // originalRowId stays — letting any future re-split of the same
+        // logical row reuse the same identity.
+      } else {
+        // Whole-row move (or column-structure mismatch): rows are
+        // independent, just append. No td.value concatenation.
+        cur.trList = [...curTrList, ...nextTrList]
+      }
+
+      cur.height = cur.trList.reduce((p, c) => p + (c.height || 0), 0)
+      this.tableParticle.computeRowColInfo(cur)
+
+      // Adjust caret / position context — skip for clone-based merges
+      // (e.g. getValue) where live position/range state must not change.
+      if (!skipStateMutation && positionContext.isTable && positionContext.index !== undefined) {
+        if (positionContext.index === i + 1) {
+          // Caret was inside `next` — migrate to `cur`
+          positionContext.index = i
+          const trIndex = positionContext.trIndex ?? 0
+          if (isFragmentPair && sameColCount) {
+            // Row 0 of next merged into cur's last row; rows >0 follow it
+            positionContext.trIndex =
+              trIndex === 0 ? lastTrIndex : lastTrIndex + trIndex
+            if (
+              trIndex === 0 &&
+              positionContext.tdIndex !== undefined &&
+              cursorTdValueOffsets[positionContext.tdIndex] > 0 &&
+              range.startIndex >= 0
+            ) {
+              const off = cursorTdValueOffsets[positionContext.tdIndex]
+              this.range.setRange(
+                range.startIndex + off,
+                range.endIndex + off
+              )
+            }
+          } else {
+            // Whole-row append: next's rows now sit after cur's rows
+            positionContext.trIndex = curTrList.length + trIndex
+          }
+          this.position.setPositionContext(positionContext)
+        } else if (positionContext.index > i + 1) {
+          // Element index shifts down because `next` was removed
+          positionContext.index -= 1
+          this.position.setPositionContext(positionContext)
+        }
+      }
+
+      elementList.splice(i + 1, 1)
+      // Stay at i — there may be more fragments with the same id queued up
+    }
+  }
 
   private splitTrListByPageHeight(
     tdList: ITd[],
-    availablePageHeight: number
+    availableScaledHeight: number,
+    scale: number
   ): [ITd[], ITd[]] {
     const currentPageTdList: ITd[] = []
-
     const nextPageTdList: ITd[] = []
 
-    const currentPageNo = ((tdList[0] || []) as any)?.(
-      positionList[0] || []
-    )?.pageNo
-    const nextPageNo = currentPageNo + 1
     for (const td of tdList) {
       const currentTd = deepClone(td)
-
       const nextTd = deepClone(td)
 
       const currentRowList: IRow[] = []
-
       const overflowRowList: IRow[] = []
-
       let accumulatedHeight = 0
+      let hasOverflowed = false
 
       for (const row of td.rowList || []) {
         const rowHeight = row.height || 0
-
-        const canFitInCurrentPage =
-          accumulatedHeight + rowHeight <= availablePageHeight
-
-        if (canFitInCurrentPage) {
+        if (
+          !hasOverflowed &&
+          accumulatedHeight + rowHeight <= availableScaledHeight
+        ) {
           currentRowList.push(row)
-
           accumulatedHeight += rowHeight
         } else {
+          hasOverflowed = true
           overflowRowList.push(row)
         }
       }
 
-      // -----------------------------------
-      // Current Page TD
-      // -----------------------------------
+      const tdGap = this.options.tdPadding * 2
+      const toUnscaledTdHeight = (rows: IRow[]) => {
+        const scaledRowsHeight = rows.reduce(
+          (pre, cur) => pre + (cur.height || 0),
+          0
+        )
+        return scaledRowsHeight / scale + tdGap
+      }
+      // Baseline height for empty cells: one empty line (not the bloated
+      // original td.height, which inherits sibling cell growth)
+      const emptyRowHeight =
+        (td.rowList?.[0]?.height || 0) / scale + tdGap
 
+      // Current page td
       currentTd.rowList = this.updateRowList(currentRowList)
-
       currentTd.value = this.rebuildValueFromRowList(currentTd.rowList)
-
-      currentTd.positionList = this.rebuildPositionListFromRowList(
-        currentTd.rowList,
-        currentPageNo
-      )
-
-      currentTd.height = this.calculateRowListHeight(currentTd.rowList)
-
+      currentTd.height = currentRowList.length
+        ? toUnscaledTdHeight(currentRowList)
+        : emptyRowHeight
       currentTd.mainHeight = currentTd.height
-
       currentTd.realHeight = currentTd.height
-
       currentTd.realMinHeight = currentTd.height
 
-      // -----------------------------------
-      // Next Page TD
-      // -----------------------------------
-
+      // Next page td (continuation)
       nextTd.rowList = this.updateRowList(overflowRowList)
-
-      nextTd.value = overflowRowList.length
-        ? this.rebuildValueFromRowList(nextTd.rowList)
-        : [{ value: '' }]
-
-      nextTd.positionList = this.rebuildPositionListFromRowList(
-        nextTd.rowList,
-        nextPageNo
-      )
-
-      nextTd.height = this.calculateRowListHeight(nextTd.rowList)
-
+      if (overflowRowList.length) {
+        const overflowElements = this.rebuildValueFromRowList(nextTd.rowList)
+        // Ensure cell-start ZERO marker so the continuation cell is a
+        // well-formed td.value (merge dedupes the duplicate marker later)
+        nextTd.value =
+          overflowElements[0]?.value === ZERO
+            ? overflowElements
+            : [{ value: ZERO } as IElement, ...overflowElements]
+      } else {
+        nextTd.value = [{ value: ZERO }]
+      }
+      nextTd.height = overflowRowList.length
+        ? toUnscaledTdHeight(overflowRowList)
+        : emptyRowHeight
       nextTd.mainHeight = nextTd.height
-
       nextTd.realHeight = nextTd.height
-
       nextTd.realMinHeight = nextTd.height
 
       currentPageTdList.push(currentTd)
-
       nextPageTdList.push(nextTd)
     }
 
     return [currentPageTdList, nextPageTdList]
   }
 
-  private updateRowList(rowList: ITr[]): ITr[] {
-    return rowList.map((row, rowIndex) => {
-      return {
+  private updateRowList(rowList: IRow[]): IRow[] {
+    let startIndex = 0
+    return rowList.map(row => {
+      const updated: IRow = {
         ...row,
-        startIndex: rowIndex,
+        startIndex,
         isPageBreak: false
       }
+      startIndex += row.elementList?.length || 0
+      return updated
     })
   }
 
-  private rebuildValueFromRowList(rowList: ITr[]): IElement[] {
+  private rebuildValueFromRowList(rowList: IRow[]): IElement[] {
     return rowList.flatMap(row =>
-      (row.elementList || []).map(element => ({
-        ...element
-      }))
-    )
-  }
-
-  private rebuildPositionListFromRowList(
-    rowList: IRow[],
-    pageNo: number
-  ): IElementPosition[] {
-    const positionList: IElementPosition[] = []
-
-    let globalIndex = 0
-
-    rowList.forEach((row, rowNo) => {
-      const elementList = row.elementList || []
-
-      elementList.forEach((element, elementIndex) => {
-        const position = {
-          ...(element.position || {})
+      (row.elementList || []).map(element => {
+        // Strip per-render fields (metrics/style) — recomputed on next render
+        const { metrics, style, ...rest } = element as IRowElement & {
+          metrics?: unknown
+          style?: unknown
         }
-
-        position.pageNo = pageNo
-
-        position.rowNo = rowNo
-
-        position.rowIndex = rowNo
-
-        position.index = globalIndex
-
-        position.isFirstLetter = elementIndex === 0
-
-        position.isLastLetter = elementIndex === elementList.length - 1
-
-        positionList.push(position)
-
-        globalIndex++
+        return rest as IElement
       })
-    })
-
-    return positionList
-  }
-
-  private calculateRowListHeight(rowList: ITr[]): number {
-    return rowList.reduce(
-      (totalHeight, row) => totalHeight + (row.height || 0),
-      0
     )
   }
 }
