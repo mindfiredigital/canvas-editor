@@ -841,8 +841,6 @@ export class Draw {
   }
 
   public getValue(options: IGetValueOption = {}): IEditorResult {
-    // Coalesce any pagination fragments so saved data describes one logical table
-    this._mergeTableFragments(this.elementList)
     // 配置
     const { width, height, margins, watermark } = this.options
     // 数据
@@ -857,9 +855,16 @@ export class Draw {
         row => row.elementList
       )
     }
+    // Coalesce any pagination fragments on a clone so saved data describes
+    // one logical table without mutating the live elementList — mutating
+    // would desync positionList (no recompute follows getValue), crashing
+    // the next mousedown at getPositionByXY → `elementList[j].type` when
+    // positionList still indexes the spliced-out continuation element.
+    const mainClone = deepClone(mainElementList)
+    this._mergeTableFragments(mainClone, true)
     const data: IEditorData = {
       header: zipElementList(this.getHeaderElementList()),
-      main: zipElementList(mainElementList),
+      main: zipElementList(mainClone),
       footer: zipElementList(this.getFooterElementList())
     }
     return {
@@ -2113,7 +2118,11 @@ export class Draw {
    * Cursor (positionContext) and selection (range) are migrated so the
    * caret stays exactly where the user left it.
    */
-  private _mergeTableFragments(elementList: IElement[]) {
+  public mergeTableFragments(elementList: IElement[], skipStateMutation = false) {
+    return this._mergeTableFragments(elementList, skipStateMutation)
+  }
+
+  private _mergeTableFragments(elementList: IElement[], skipStateMutation = false) {
     let i = 0
     while (i < elementList.length - 1) {
       const cur = elementList[i]
@@ -2194,8 +2203,9 @@ export class Draw {
       cur.height = cur.trList.reduce((p, c) => p + (c.height || 0), 0)
       this.tableParticle.computeRowColInfo(cur)
 
-      // Adjust caret / position context
-      if (positionContext.isTable && positionContext.index !== undefined) {
+      // Adjust caret / position context — skip for clone-based merges
+      // (e.g. getValue) where live position/range state must not change.
+      if (!skipStateMutation && positionContext.isTable && positionContext.index !== undefined) {
         if (positionContext.index === i + 1) {
           // Caret was inside `next` — migrate to `cur`
           positionContext.index = i
