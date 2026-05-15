@@ -9,7 +9,7 @@ import { CanvasEvent } from '../CanvasEvent'
 
 export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
   console.log('keydown')
-  
+
   if (host.isComposing) return
   const draw = host.getDraw()
   const position = draw.getPosition()
