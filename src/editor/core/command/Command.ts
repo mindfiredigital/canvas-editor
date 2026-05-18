@@ -52,6 +52,7 @@ export class Command {
   public executeTableTdBorderWidthLeft: CommandAdapt['tableTdBorderWidthLeft']
   public executeTableTdBorderWidthBottom: CommandAdapt['tableTdBorderWidthBottom']
   public executeTableTdBorderWidthRight: CommandAdapt['tableTdBorderWidthRight']
+  public executeTableRowSeparator: CommandAdapt['tableRowSeparator']
   public executeImage: CommandAdapt['image']
   public executeHyperlink: CommandAdapt['hyperlink']
   public executeDeleteHyperlink: CommandAdapt['deleteHyperlink']
@@ -94,6 +95,7 @@ export class Command {
   public getSearchNavigateInfo: CommandAdapt['getSearchNavigateInfo']
   public getContentStyles: CommandAdapt['getContentStyles']
   public executeGlobalHyperlink: CommandAdapt['globalHyperlink']
+  public getHyperlinkRange: CommandAdapt['getHyperlinkRange']
 
   constructor(adapt: CommandAdapt) {
     // 全局命令
@@ -155,6 +157,7 @@ export class Command {
       adapt.tableTdBorderWidthBottom.bind(adapt)
     this.executeTableTdBorderWidthRight =
       adapt.tableTdBorderWidthRight.bind(adapt)
+    this.executeTableRowSeparator = adapt.tableRowSeparator.bind(adapt)
     this.executeImage = adapt.image.bind(adapt)
     this.executeHyperlink = adapt.hyperlink.bind(adapt)
     this.executeDeleteHyperlink = adapt.deleteHyperlink.bind(adapt)
@@ -200,5 +203,6 @@ export class Command {
     this.getPaperMargin = adapt.getPaperMargin.bind(adapt)
     this.getSearchNavigateInfo = adapt.getSearchNavigateInfo.bind(adapt)
     this.getContentStyles = adapt.getContentStyles.bind(adapt)
+    this.getHyperlinkRange = adapt.getHyperlinkRange.bind(adapt)
   }
 }

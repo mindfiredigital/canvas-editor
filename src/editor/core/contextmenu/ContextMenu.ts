@@ -73,6 +73,16 @@ export class ContextMenu {
   }
 
   private _proxyContextMenuEvent = (evt: MouseEvent) => {
+    // update position from right-click so menu acts on clicked cell/row
+    const target = evt.target as HTMLElement
+    const pageIndex = target?.dataset?.index
+    if (pageIndex) {
+      this.draw.setPageNo(Number(pageIndex))
+    }
+    this.position.adjustPositionContext({
+      x: evt.offsetX,
+      y: evt.offsetY
+    })
     this.context = this._getContext()
     const renderList: IRegisterContextMenu[] = []
     let isRegisterContextMenu = false

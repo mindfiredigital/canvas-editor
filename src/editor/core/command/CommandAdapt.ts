@@ -1459,6 +1459,33 @@ export class CommandAdapt {
       curIndex: endIndex
     })
   }
+  public tableRowSeparator(payload: { color?: string; width?: number }) {
+    const isReadonly = this.draw.isReadonly()
+    if (isReadonly) return
+    const positionContext = this.position.getPositionContext()
+    if (!positionContext.isTable) return
+    const { index, trIndex } = positionContext
+    const originalElementList = this.draw.getOriginalElementList()
+    const element = originalElementList[index!]
+    const tr = element?.trList?.[trIndex!]
+    if (!tr) return
+    const trNext = element!.trList![trIndex! + 1]
+    const { color, width } = payload
+    tr.tdList.forEach(td => {
+      if (color !== undefined) td.borderBgBottom = color
+      if (width !== undefined) td.borderWidthBottom = width
+    })
+    if (trNext) {
+      trNext.tdList.forEach(td => {
+        if (color !== undefined) td.borderBgTop = color
+        if (width !== undefined) td.borderWidthTop = width
+      })
+    }
+    const { endIndex } = this.range.getRange()
+    this.draw.render({
+      curIndex: endIndex
+    })
+  }
   public hyperlink(payload: IElement) {
     const isReadonly = this.draw.isReadonly()
     if (isReadonly) return

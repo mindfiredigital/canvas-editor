@@ -133,10 +133,10 @@ export function formatElementList(
           const tr = el.trList[t]
           const trId = getUUID()
           tr.id = trId
-          if (
-            !tr.minHeight ||
-            tr.minHeight < editorOptions.defaultTrMinHeight
-          ) {
+          // Respect explicit per-row minHeight from imported data (e.g. DOCX).
+          // Only apply defaultTrMinHeight as a floor when the row has no
+          // explicit minHeight at all (e.g. new tables created via the UI).
+          if (tr.minHeight === undefined || tr.minHeight === null) {
             tr.minHeight = editorOptions.defaultTrMinHeight
           }
           if (tr.height < tr.minHeight) {

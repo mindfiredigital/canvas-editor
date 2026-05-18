@@ -9,7 +9,7 @@ import { CanvasEvent } from '../CanvasEvent'
 
 export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
   console.log('keydown')
-  
+
   if (host.isComposing) return
   const draw = host.getDraw()
   const position = draw.getPosition()
@@ -29,6 +29,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
   const activeControl = control.getActiveControl()
   if (evt.key === KeyMap.Backspace) {
     if (isReadonly || isPartRangeInControlOutside) return
+    evt.preventDefault()
     let curIndex: number
     if (activeControl) {
       curIndex = control.keydown(evt)
@@ -63,6 +64,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
     draw.render({ curIndex })
   } else if (evt.key === KeyMap.Delete) {
     if (isReadonly || isPartRangeInControlOutside) return
+    evt.preventDefault()
     let curIndex: number
     if (activeControl) {
       curIndex = control.keydown(evt)

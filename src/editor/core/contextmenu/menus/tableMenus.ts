@@ -330,5 +330,44 @@ export const tableMenus: IRegisterContextMenu[] = [
         }
       }
     ]
+  },
+  {
+    name: 'Row separator',
+    icon: '',
+    when: payload => {
+      return !payload.isReadonly && payload.isInTable
+    },
+    childMenus: [
+      {
+        name: 'Color',
+        icon: 'td-bgcolor',
+        when: () => true,
+        callback: (command: Command) => {
+          new ColorPicker({
+            onConfirm(payload) {
+              if (!payload) return
+              const { value } = payload
+              if (!value) return
+              command.executeTableRowSeparator({ color: value })
+            }
+          })
+        }
+      },
+      {
+        name: 'Width',
+        icon: '',
+        when: () => true,
+        callback: (command: Command) => {
+          new RangePicker({
+            onConfirm(payload) {
+              if (!payload) return
+              const { value } = payload
+              if (!value) return
+              command.executeTableRowSeparator({ width: value })
+            }
+          })
+        }
+      }
+    ]
   }
 ]

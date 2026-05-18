@@ -31,4 +31,6 @@ export interface ITd {
   borderWidthBottom?: number
   borderWidthLeft?: number
   borderWidthRight?: number
+  isPageBreakBorderTop?: boolean
+  isPageBreakBorderBottom?: boolean
 }

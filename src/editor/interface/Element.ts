@@ -52,6 +52,10 @@ export interface ITableAttr {
   colgroup?: IColgroup[]
   trList?: ITr[]
   borderType?: TableBorder
+  pageBreakBorderTop?: string
+  pageBreakBorderTopWidth?: number
+  pageBreakBorderBottom?: string
+  pageBreakBorderBottomWidth?: number
 }
 
 export interface ITableElement {

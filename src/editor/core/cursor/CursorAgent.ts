@@ -3,7 +3,6 @@ import { EDITOR_PREFIX } from '../../dataset/constant/Editor'
 import { VIRTUAL_ELEMENT_TYPE } from '../../dataset/constant/Element'
 import { ElementType } from '../../dataset/enum/Element'
 import { IElement } from '../../interface/Element'
-import { debounce } from '../../utils'
 import { formatElementContext, getElementListByHTML } from '../../utils/element'
 import { Draw } from '../draw/Draw'
 import { CanvasEvent } from '../event/CanvasEvent'
@@ -27,7 +26,7 @@ export class CursorAgent {
     this.agentCursorDom = agentCursorDom
     // 事件
     agentCursorDom.onkeydown = (evt: KeyboardEvent) => this._keyDown(evt)
-    agentCursorDom.oninput = debounce(this._input.bind(this), 0)
+    agentCursorDom.oninput = (evt: Event) => this._input(evt as InputEvent)
     agentCursorDom.onpaste = (evt: ClipboardEvent) => this._paste(evt)
     agentCursorDom.addEventListener(
       'compositionstart',
