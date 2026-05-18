@@ -36,6 +36,13 @@ export class HyperlinkParticle {
     hyperlinkPreviewDom.setAttribute('frameborder', '0')
     hyperlinkPreviewDom.setAttribute('allow', 'autoplay; encrypted-media')
     hyperlinkPreviewDom.setAttribute('allowfullscreen', 'true')
+    hyperlinkPreviewDom.setAttribute(
+      'sandbox',
+      'allow-scripts allow-same-origin allow-presentation allow-popups'
+    )
+    hyperlinkPreviewDom.setAttribute('referrerpolicy', 'no-referrer')
+    hyperlinkPreviewDom.setAttribute('loading', 'lazy')
+    hyperlinkPreviewDom.setAttribute('title', 'Hyperlink preview')
     hyperlinkPreviewDom.style.display = 'none'
     hyperlinkPreviewDom.style.width = '320px'
     hyperlinkPreviewDom.style.height = '180px'

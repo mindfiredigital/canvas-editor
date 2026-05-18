@@ -44,7 +44,10 @@
       "border": "表格边框",
       "borderAll": "所有框线",
       "borderEmpty": "无框线",
-      "borderExternal": "外侧框线"
+      "borderExternal": "外侧框线",
+      "rowSeparator": "行分隔线",
+      "rowSeparatorColor": "颜色",
+      "rowSeparatorWidth": "宽度"
     }
   },
   "datePicker": {

@@ -333,6 +333,7 @@ export const tableMenus: IRegisterContextMenu[] = [
   },
   {
     name: 'Row separator',
+    i18nPath: 'contextmenu.table.rowSeparator',
     icon: '',
     when: payload => {
       return !payload.isReadonly && payload.isInTable
@@ -340,6 +341,7 @@ export const tableMenus: IRegisterContextMenu[] = [
     childMenus: [
       {
         name: 'Color',
+        i18nPath: 'contextmenu.table.rowSeparatorColor',
         icon: 'td-bgcolor',
         when: () => true,
         callback: (command: Command) => {
@@ -355,6 +357,7 @@ export const tableMenus: IRegisterContextMenu[] = [
       },
       {
         name: 'Width',
+        i18nPath: 'contextmenu.table.rowSeparatorWidth',
         icon: '',
         when: () => true,
         callback: (command: Command) => {
@@ -362,7 +365,7 @@ export const tableMenus: IRegisterContextMenu[] = [
             onConfirm(payload) {
               if (!payload) return
               const { value } = payload
-              if (!value) return
+              if (value == null) return
               command.executeTableRowSeparator({ width: value })
             }
           })
