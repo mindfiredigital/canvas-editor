@@ -56,11 +56,11 @@ export function input(data: string, host: CanvasEvent) {
         }
       })
     }
-    if (isComposing) {
-      newElement.underline = true
-    }
     if (rangeManager.pendingStyle) {
       Object.assign(newElement, rangeManager.pendingStyle)
+    }
+    if (isComposing) {
+      newElement.underline = true
     }
     return newElement
   })

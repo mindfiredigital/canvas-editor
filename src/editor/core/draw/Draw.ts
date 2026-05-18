@@ -1000,10 +1000,17 @@ export class Draw {
       const NATURAL_LINE_HEIGHT = 1.2
       const rowMargin =
         (elSizePx * Math.max(NATURAL_LINE_HEIGHT * lineSpacing - 1, 0)) / 2
-      // Paragraph spacing only applies to paragraph-start markers (ZERO)
+      // Paragraph spacing only applies to paragraph-start markers (ZERO).
+      // "Before" pads above the paragraph start; "after" pads below the
+      // paragraph end (the ZERO marker that begins the NEXT paragraph
+      // carries the previous paragraph's "after" via the preceding break,
+      // so we apply both on the ZERO marker for simplicity).
       const isParaStart = element.value === ZERO
       const paragraphSpacingBefore = isParaStart
         ? (element.paragraphSpacingBefore || 0) * scale
+        : 0
+      const paragraphSpacingAfter = isParaStart
+        ? (element.paragraphSpacingAfter || 0) * scale
         : 0
       const metrics: IElementMetrics = {
         width: 0,
@@ -1535,7 +1542,8 @@ export class Draw {
         paragraphSpacingBefore +
         metrics.boundingBoxAscent +
         metrics.boundingBoxDescent +
-        rowMargin
+        rowMargin +
+        paragraphSpacingAfter
 
       const rowElement: IRowElement = Object.assign(element, {
         metrics,

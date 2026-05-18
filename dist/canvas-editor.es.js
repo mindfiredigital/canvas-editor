@@ -5517,11 +5517,11 @@ function input(data2, host) {
         }
       });
     }
-    if (isComposing) {
-      newElement.underline = true;
-    }
     if (rangeManager.pendingStyle) {
       Object.assign(newElement, rangeManager.pendingStyle);
+    }
+    if (isComposing) {
+      newElement.underline = true;
     }
     return newElement;
   });
@@ -7734,8 +7734,10 @@ class TableParticle {
     });
     const firstTr = (_a = element.trList) == null ? void 0 : _a[0];
     if (firstTr == null ? void 0 : firstTr.tdList.some((td) => td.isPageBreakBorderTop)) {
-      const color = ((_b = firstTr.tdList.find((td) => td.isPageBreakBorderTop)) == null ? void 0 : _b.borderBgTop) || "red";
-      this._drawPageBreakSeparator(ctx, Math.round(startY), color);
+      const color = (_b = firstTr.tdList.find((td) => td.isPageBreakBorderTop)) == null ? void 0 : _b.borderBgTop;
+      if (color) {
+        this._drawPageBreakSeparator(ctx, Math.round(startY), color);
+      }
     }
     for (let t = 0; t < trList.length; t++) {
       const tr = trList[t];
@@ -7759,12 +7761,12 @@ class TableParticle {
         const bottomCandidates = [
           { color: td.borderBgBottom, width: td.borderWidthBottom },
           { color: trNext == null ? void 0 : trNext.borderBgTop, width: trNext == null ? void 0 : trNext.borderWidthTop }
-        ].filter((b) => !!b.color);
+        ].filter((b) => !!b.color || b.width != null);
         const chosen = bottomCandidates.length ? bottomCandidates.reduce((a, b) => {
           var _a2, _b2;
           return ((_a2 = b.width) != null ? _a2 : 0) > ((_b2 = a.width) != null ? _b2 : 0) ? b : a;
         }) : { color: "black", width: 1 };
-        ctx.strokeStyle = chosen.color;
+        ctx.strokeStyle = chosen.color || "black";
         ctx.lineWidth = chosen.width || 1;
         ctx.moveTo(x, y + height);
         ctx.lineTo(x - width, y + height);
@@ -7775,9 +7777,11 @@ class TableParticle {
     }
     const lastTr = trList[trList.length - 1];
     if (lastTr == null ? void 0 : lastTr.tdList.some((td) => td.isPageBreakBorderBottom)) {
-      const color = ((_d = lastTr.tdList.find((td) => td.isPageBreakBorderBottom)) == null ? void 0 : _d.borderBgBottom) || "red";
-      const bottomY = Math.round((lastTr.tdList[0].y + lastTr.tdList[0].height) * this.options.scale + startY);
-      this._drawPageBreakSeparator(ctx, bottomY, color);
+      const color = (_d = lastTr.tdList.find((td) => td.isPageBreakBorderBottom)) == null ? void 0 : _d.borderBgBottom;
+      if (color) {
+        const bottomY = Math.round((lastTr.tdList[0].y + lastTr.tdList[0].height) * this.options.scale + startY);
+        this._drawPageBreakSeparator(ctx, bottomY, color);
+      }
     }
     ctx.restore();
   }
@@ -8247,6 +8251,10 @@ class HyperlinkParticle {
     hyperlinkPreviewDom.setAttribute("frameborder", "0");
     hyperlinkPreviewDom.setAttribute("allow", "autoplay; encrypted-media");
     hyperlinkPreviewDom.setAttribute("allowfullscreen", "true");
+    hyperlinkPreviewDom.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups");
+    hyperlinkPreviewDom.setAttribute("referrerpolicy", "no-referrer");
+    hyperlinkPreviewDom.setAttribute("loading", "lazy");
+    hyperlinkPreviewDom.setAttribute("title", "Hyperlink preview");
     hyperlinkPreviewDom.style.display = "none";
     hyperlinkPreviewDom.style.width = "320px";
     hyperlinkPreviewDom.style.height = "180px";
@@ -9580,7 +9588,10 @@ const contextmenu$1 = {
     border: "\u8868\u683C\u8FB9\u6846",
     borderAll: "\u6240\u6709\u6846\u7EBF",
     borderEmpty: "\u65E0\u6846\u7EBF",
-    borderExternal: "\u5916\u4FA7\u6846\u7EBF"
+    borderExternal: "\u5916\u4FA7\u6846\u7EBF",
+    rowSeparator: "\u884C\u5206\u9694\u7EBF",
+    rowSeparatorColor: "\u989C\u8272",
+    rowSeparatorWidth: "\u5BBD\u5EA6"
   }
 };
 const datePicker$1 = {
@@ -10341,7 +10352,10 @@ const contextmenu = {
     bottom: "Bottom",
     left: "Left",
     right: "Right",
-    borderWidth: "Cell border width"
+    borderWidth: "Cell border width",
+    rowSeparator: "Row separator",
+    rowSeparatorColor: "Color",
+    rowSeparatorWidth: "Width"
   }
 };
 const datePicker = {
@@ -11471,6 +11485,7 @@ class Draw {
       const rowMargin = elSizePx * Math.max(NATURAL_LINE_HEIGHT * lineSpacing - 1, 0) / 2;
       const isParaStart = element.value === ZERO;
       const paragraphSpacingBefore = isParaStart ? (element.paragraphSpacingBefore || 0) * scale : 0;
+      const paragraphSpacingAfter = isParaStart ? (element.paragraphSpacingAfter || 0) * scale : 0;
       const metrics = {
         width: 0,
         height: 0,
@@ -11822,7 +11837,7 @@ class Draw {
       }
       const isImageOrLatexBlock = element.imgDisplay !== ImageDisplay.INLINE && element.type === ElementType.IMAGE || element.type === ElementType.LATEX;
       const ascent = isImageOrLatexBlock ? metrics.height + rowMargin : metrics.boundingBoxAscent + rowMargin;
-      const height = rowMargin + paragraphSpacingBefore + metrics.boundingBoxAscent + metrics.boundingBoxDescent + rowMargin;
+      const height = rowMargin + paragraphSpacingBefore + metrics.boundingBoxAscent + metrics.boundingBoxDescent + rowMargin + paragraphSpacingAfter;
       const rowElement = Object.assign(element, {
         metrics,
         style: this._getFont(element, scale)
@@ -15377,6 +15392,7 @@ const tableMenus = [
   },
   {
     name: "Row separator",
+    i18nPath: "contextmenu.table.rowSeparator",
     icon: "",
     when: (payload) => {
       return !payload.isReadonly && payload.isInTable;
@@ -15384,6 +15400,7 @@ const tableMenus = [
     childMenus: [
       {
         name: "Color",
+        i18nPath: "contextmenu.table.rowSeparatorColor",
         icon: "td-bgcolor",
         when: () => true,
         callback: (command) => {
@@ -15401,6 +15418,7 @@ const tableMenus = [
       },
       {
         name: "Width",
+        i18nPath: "contextmenu.table.rowSeparatorWidth",
         icon: "",
         when: () => true,
         callback: (command) => {
@@ -15409,7 +15427,7 @@ const tableMenus = [
               if (!payload)
                 return;
               const { value } = payload;
-              if (!value)
+              if (value == null)
                 return;
               command.executeTableRowSeparator({ width: value });
             }
@@ -15422,9 +15440,10 @@ const tableMenus = [
 class ContextMenu {
   constructor(draw, command) {
     this._proxyContextMenuEvent = (evt) => {
-      var _a, _b;
+      var _a, _b, _c;
       const target = evt.target;
-      const pageIndex = (_a = target == null ? void 0 : target.dataset) == null ? void 0 : _a.index;
+      const pageIndexEl = (_a = target == null ? void 0 : target.closest) == null ? void 0 : _a.call(target, "[data-index]");
+      const pageIndex = (_b = pageIndexEl == null ? void 0 : pageIndexEl.dataset) == null ? void 0 : _b.index;
       if (pageIndex) {
         this.draw.setPageNo(Number(pageIndex));
       }
@@ -15440,7 +15459,7 @@ class ContextMenu {
         if (menu.isDivider) {
           renderList.push(menu);
         } else {
-          const isMatch = (_b = menu.when) == null ? void 0 : _b.call(menu, this.context);
+          const isMatch = (_c = menu.when) == null ? void 0 : _c.call(menu, this.context);
           if (isMatch) {
             renderList.push(menu);
             isRegisterContextMenu = true;

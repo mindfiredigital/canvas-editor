@@ -195,10 +195,11 @@ export class TableParticle {
     // content width.
     const firstTr = element.trList?.[0]
     if (firstTr?.tdList.some(td => td.isPageBreakBorderTop)) {
-      const color =
-        firstTr.tdList.find(td => td.isPageBreakBorderTop)?.borderBgTop ||
-        'red'
-      this._drawPageBreakSeparator(ctx, Math.round(startY), color)
+      const color = firstTr.tdList.find(td => td.isPageBreakBorderTop)
+        ?.borderBgTop
+      if (color) {
+        this._drawPageBreakSeparator(ctx, Math.round(startY), color)
+      }
     }
 
     // if (!isExternalBorderType) {
@@ -242,13 +243,13 @@ export class TableParticle {
         const bottomCandidates = [
           { color: td.borderBgBottom, width: td.borderWidthBottom },
           { color: trNext?.borderBgTop, width: trNext?.borderWidthTop }
-        ].filter(b => !!b.color)
+        ].filter(b => !!b.color || b.width != null)
         const chosen = bottomCandidates.length
           ? bottomCandidates.reduce((a, b) =>
               (b.width ?? 0) > (a.width ?? 0) ? b : a
             )
           : { color: 'black', width: 1 }
-        ctx.strokeStyle = chosen.color!
+        ctx.strokeStyle = chosen.color || 'black'
         ctx.lineWidth = chosen.width || 1
 
         ctx.moveTo(x, y + height)
@@ -315,14 +316,15 @@ export class TableParticle {
     // thick-left + thin-right line spanning page content width.
     const lastTr = trList[trList.length - 1]
     if (lastTr?.tdList.some(td => td.isPageBreakBorderBottom)) {
-      const color =
-        lastTr.tdList.find(td => td.isPageBreakBorderBottom)?.borderBgBottom ||
-        'red'
-      const bottomY = Math.round(
-        (lastTr.tdList[0].y! + lastTr.tdList[0].height!) * this.options.scale +
-          startY
-      )
-      this._drawPageBreakSeparator(ctx, bottomY, color)
+      const color = lastTr.tdList.find(td => td.isPageBreakBorderBottom)
+        ?.borderBgBottom
+      if (color) {
+        const bottomY = Math.round(
+          (lastTr.tdList[0].y! + lastTr.tdList[0].height!) * this.options.scale +
+            startY
+        )
+        this._drawPageBreakSeparator(ctx, bottomY, color)
+      }
     }
     // }
     ctx.restore()
