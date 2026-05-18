@@ -133,10 +133,10 @@ export function formatElementList(
           const tr = el.trList[t]
           const trId = getUUID()
           tr.id = trId
-          if (
-            !tr.minHeight ||
-            tr.minHeight < editorOptions.defaultTrMinHeight
-          ) {
+          // Respect explicit per-row minHeight from imported data (e.g. DOCX).
+          // Only apply defaultTrMinHeight as a floor when the row has no
+          // explicit minHeight at all (e.g. new tables created via the UI).
+          if (tr.minHeight === undefined || tr.minHeight === null) {
             tr.minHeight = editorOptions.defaultTrMinHeight
           }
           if (tr.height < tr.minHeight) {
@@ -490,6 +490,10 @@ export function zipElementList(payload: IElement[]): IElement[] {
             if (td.borderBgLeft) {
               zipTd.borderBgLeft = td.borderBgLeft
             }
+            zipTd.borderWidthTop = td.borderWidthTop
+            zipTd.borderWidthBottom = td.borderWidthBottom
+            zipTd.borderWidthRight = td.borderWidthRight
+            zipTd.borderWidthLeft = td.borderWidthLeft
             tr.tdList[d] = zipTd
           }
         }
@@ -730,7 +734,7 @@ export function createDomFromElementList(
           const tr = trList[t]
           for (let d = 0; d < tr.tdList.length; d++) {
             const tdDom = document.createElement('td')
-            tdDom.style.border = '1px solid'
+            tdDom.style.border = '0px solid'
             const td = tr.tdList[d]
             tdDom.colSpan = td.colspan
             tdDom.rowSpan = td.rowspan
@@ -989,15 +993,20 @@ export function getElementListByHTML(
             trList: []
           }
           // 基础数据
-          tableElement.querySelectorAll('tr').forEach(trElement => {
+          const rowElements = Array.from(tableElement.rows).filter(
+            trElement => trElement.closest('table') === tableElement
+          )
+          rowElements.forEach(trElement => {
             const trHeightStr = window
               .getComputedStyle(trElement)
               .height.replace('px', '')
             const tr: ITr = {
-              height: Number(trHeightStr),
+              height: Number.isFinite(Number(trHeightStr))
+                ? Number(trHeightStr)
+                : 0,
               tdList: []
             }
-            trElement.querySelectorAll('th,td').forEach(tdElement => {
+            Array.from(trElement.cells).forEach(tdElement => {
               const tableCell = <HTMLTableCellElement>tdElement
               const valueList = getElementListByHTML(
                 tableCell.innerHTML,

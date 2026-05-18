@@ -29,6 +29,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
   const activeControl = control.getActiveControl()
   if (evt.key === KeyMap.Backspace) {
     if (isReadonly || isPartRangeInControlOutside) return
+    evt.preventDefault()
     let curIndex: number
     if (activeControl) {
       curIndex = control.keydown(evt)
@@ -63,6 +64,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
     draw.render({ curIndex })
   } else if (evt.key === KeyMap.Delete) {
     if (isReadonly || isPartRangeInControlOutside) return
+    evt.preventDefault()
     let curIndex: number
     if (activeControl) {
       curIndex = control.keydown(evt)
@@ -124,6 +126,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
     }
     evt.preventDefault()
   } else if (evt.key === KeyMap.Left) {
+    rangeManager.pendingStyle = null
     if (isReadonly) return
     if (index > 0) {
       const curIndex = startIndex - 1
@@ -157,6 +160,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
       evt.preventDefault()
     }
   } else if (evt.key === KeyMap.Right) {
+    rangeManager.pendingStyle = null
     if (isReadonly) return
     if (index < positionList.length) {
       const curIndex = endIndex + 1
@@ -196,6 +200,7 @@ export function keydown(evt: KeyboardEvent, host: CanvasEvent) {
       evt.preventDefault()
     }
   } else if (evt.key === KeyMap.Up || evt.key === KeyMap.Down) {
+    rangeManager.pendingStyle = null
     if (isReadonly) return
     let anchorPosition: IElementPosition = cursorPosition
     // 扩大选区时，判断移动光标点

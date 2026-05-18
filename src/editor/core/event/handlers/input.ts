@@ -59,6 +59,9 @@ export function input(data: string, host: CanvasEvent) {
     if (isComposing) {
       newElement.underline = true
     }
+    if (rangeManager.pendingStyle) {
+      Object.assign(newElement, rangeManager.pendingStyle)
+    }
     return newElement
   })
   // 控件-移除placeholder

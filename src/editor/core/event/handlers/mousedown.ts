@@ -10,6 +10,7 @@ export function mousedown(evt: MouseEvent, host: CanvasEvent) {
   const draw = host.getDraw()
   const isReadonly = draw.isReadonly()
   const rangeManager = draw.getRange()
+  rangeManager.pendingStyle = null
   const position = draw.getPosition()
   // Whether it is selection dragging
   if (!host.isAllowDrag) {

@@ -1,4 +1,4 @@
-import { ZERO } from '../../../dataset/constant/Common'
+import { PX_PER_PT, ZERO } from '../../../dataset/constant/Common'
 import { ulStyleMapping } from '../../../dataset/constant/List'
 import { KeyMap } from '../../../dataset/enum/KeyMap'
 import { ListStyle, ListType, UlStyle } from '../../../dataset/enum/List'
@@ -108,7 +108,7 @@ export class ListParticle {
     const y = startY + ascent
     const { defaultFont, defaultSize, scale } = this.options
     ctx.save()
-    ctx.font = `${defaultSize * scale}px ${defaultFont}`
+    ctx.font = `${defaultSize * scale * PX_PER_PT}px ${defaultFont}`
     ctx.fillText(text, x, y)
     ctx.restore()
   }

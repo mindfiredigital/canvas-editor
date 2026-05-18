@@ -30,6 +30,7 @@ export class Command {
   public executeList: CommandAdapt['list']
   public executeRowFlex: CommandAdapt['rowFlex']
   public executeRowMargin: CommandAdapt['rowMargin']
+  public executeParagraphSpacing: CommandAdapt['paragraphSpacing']
   public executeInsertTable: CommandAdapt['insertTable']
   public executeInsertTableTopRow: CommandAdapt['insertTableTopRow']
   public executeInsertTableBottomRow: CommandAdapt['insertTableBottomRow']
@@ -51,6 +52,7 @@ export class Command {
   public executeTableTdBorderWidthLeft: CommandAdapt['tableTdBorderWidthLeft']
   public executeTableTdBorderWidthBottom: CommandAdapt['tableTdBorderWidthBottom']
   public executeTableTdBorderWidthRight: CommandAdapt['tableTdBorderWidthRight']
+  public executeTableRowSeparator: CommandAdapt['tableRowSeparator']
   public executeImage: CommandAdapt['image']
   public executeHyperlink: CommandAdapt['hyperlink']
   public executeDeleteHyperlink: CommandAdapt['deleteHyperlink']
@@ -128,6 +130,7 @@ export class Command {
     this.executeList = adapt.list.bind(adapt)
     this.executeRowFlex = adapt.rowFlex.bind(adapt)
     this.executeRowMargin = adapt.rowMargin.bind(adapt)
+    this.executeParagraphSpacing = adapt.paragraphSpacing.bind(adapt)
     // 表格、图片上传、超链接、搜索、打印、图片操作
     this.executeInsertTable = adapt.insertTable.bind(adapt)
     this.executeInsertTableTopRow = adapt.insertTableTopRow.bind(adapt)
@@ -154,6 +157,7 @@ export class Command {
       adapt.tableTdBorderWidthBottom.bind(adapt)
     this.executeTableTdBorderWidthRight =
       adapt.tableTdBorderWidthRight.bind(adapt)
+    this.executeTableRowSeparator = adapt.tableRowSeparator.bind(adapt)
     this.executeImage = adapt.image.bind(adapt)
     this.executeHyperlink = adapt.hyperlink.bind(adapt)
     this.executeDeleteHyperlink = adapt.deleteHyperlink.bind(adapt)
