@@ -71,6 +71,16 @@ window.onload = function () {
     }
   )
 
+  // Keep editor selection/caret when clicking toolbar buttons.
+  // Buttons would otherwise steal focus on mousedown and collapse the selection.
+  const menuDom = document.querySelector<HTMLDivElement>('.menu')
+  menuDom?.addEventListener('mousedown', evt => {
+    const target = evt.target as HTMLElement
+    const tag = target.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return
+    evt.preventDefault()
+  })
+
   //TOOLBAR OPERATIONS
 
   // 2.| Undo | Redo | Format Painter | Clear Formatting |

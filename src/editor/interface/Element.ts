@@ -30,6 +30,8 @@ export interface IElementStyle {
   rowFlex?: RowFlex
   rowMargin?: number
   letterSpacing?: number
+  paragraphSpacingBefore?: number
+  paragraphSpacingAfter?: number
 }
 
 export interface ITitleElement {
@@ -50,6 +52,10 @@ export interface ITableAttr {
   colgroup?: IColgroup[]
   trList?: ITr[]
   borderType?: TableBorder
+  pageBreakBorderTop?: string
+  pageBreakBorderTopWidth?: number
+  pageBreakBorderBottom?: string
+  pageBreakBorderBottomWidth?: number
 }
 
 export interface ITableElement {

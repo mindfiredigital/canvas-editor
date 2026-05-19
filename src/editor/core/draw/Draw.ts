@@ -1,5 +1,5 @@
 import { version } from '../../../../package.json'
-import { ZERO } from '../../dataset/constant/Common'
+import { PX_PER_PT, ZERO } from '../../dataset/constant/Common'
 import { RowFlex } from '../../dataset/enum/Row'
 import {
   IAppendElementListOption,
@@ -21,6 +21,7 @@ import {
   IElementStyle
 } from '../../interface/Element'
 import { IRow, IRowElement } from '../../interface/Row'
+import { ITd } from '../../interface/table/Td'
 import { deepClone, getUUID, nextTick } from '../../utils'
 import { Cursor } from '../cursor/Cursor'
 import { CanvasEvent } from '../event/CanvasEvent'
@@ -81,7 +82,6 @@ import { Placeholder } from './frame/Placeholder'
 import { WORD_LIKE_REG } from '../../dataset/constant/Regular'
 import { EventBus } from '../event/eventbus/EventBus'
 import { EventBusMap } from '../../interface/EventBus'
-import { ITd } from '../../interface/table/Td'
 
 export class Draw {
   private container: HTMLDivElement
@@ -963,7 +963,7 @@ export class Draw {
     const font = el.font || defaultFont
     const size = el.actualSize || el.size || defaultSize
     return `${el.italic ? 'italic ' : ''}${el.bold ? 'bold ' : ''}${
-      size * scale
+      size * scale * PX_PER_PT
     }px ${font}`
   }
 
@@ -991,8 +991,27 @@ export class Draw {
     for (let i = 0; i < elementList.length; i++) {
       const currentRow: IRow = rowList[rowList.length - 1]
       const element = elementList[i]
+      // Word/Google-Docs line-spacing: total line height ≈ fontSize × NATURAL_LH × spacing
+      // where NATURAL_LH ≈ 1.2 is the font's natural line height. Per-side margin is
+      // half the leading beyond the glyph's bounding box (~elSize_px).
+      const lineSpacing = element.rowMargin || defaultRowMargin
+      const elSizePx =
+        (element.size || defaultSize) * PX_PER_PT * scale
+      const NATURAL_LINE_HEIGHT = 1.2
       const rowMargin =
-        defaultBasicRowMarginHeight * (element.rowMargin || defaultRowMargin)
+        (elSizePx * Math.max(NATURAL_LINE_HEIGHT * lineSpacing - 1, 0)) / 2
+      // Paragraph spacing only applies to paragraph-start markers (ZERO).
+      // "Before" pads above the paragraph start; "after" pads below the
+      // paragraph end (the ZERO marker that begins the NEXT paragraph
+      // carries the previous paragraph's "after" via the preceding break,
+      // so we apply both on the ZERO marker for simplicity).
+      const isParaStart = element.value === ZERO
+      const paragraphSpacingBefore = isParaStart
+        ? (element.paragraphSpacingBefore || 0) * scale
+        : 0
+      const paragraphSpacingAfter = isParaStart
+        ? (element.paragraphSpacingAfter || 0) * scale
+        : 0
       const metrics: IElementMetrics = {
         width: 0,
         height: 0,
@@ -1275,6 +1294,28 @@ export class Draw {
               element.height = newTableHeight
               metrics.height = newTableHeight * scale
               metrics.boundingBoxDescent = metrics.height
+              // Page-break border continuity (whole-row move): paint table's
+              // outer bottom border on the last row of the current-page
+              // fragment, and outer top border on the first row of the
+              // continuation fragment.
+              if (element.pageBreakBorderBottom && trList.length) {
+                trList[trList.length - 1].tdList.forEach(td => {
+                  td.borderBgBottom = element.pageBreakBorderBottom
+                  if (element.pageBreakBorderBottomWidth !== undefined) {
+                    td.borderWidthBottom = element.pageBreakBorderBottomWidth
+                  }
+                  td.isPageBreakBorderBottom = true
+                })
+              }
+              if (cloneElement.pageBreakBorderTop && cloneElement.trList?.length) {
+                cloneElement.trList[0].tdList.forEach(td => {
+                  td.borderBgTop = cloneElement.pageBreakBorderTop
+                  if (cloneElement.pageBreakBorderTopWidth !== undefined) {
+                    td.borderWidthTop = cloneElement.pageBreakBorderTopWidth
+                  }
+                  td.isPageBreakBorderTop = true
+                })
+              }
               this.tableParticle.computeRowColInfo(element)
               this.tableParticle.computeRowColInfo(cloneElement)
               this.spliceElementList(elementList, i + 1, 0, cloneElement)
@@ -1312,6 +1353,31 @@ export class Draw {
                 td.realHeight = splitTrHeight
                 td.realMinHeight = splitTrHeight
               })
+
+              // Page-break border continuity: when a row is sliced across a
+              // page boundary, draw the table's outer top border at the
+              // continuation cells (page top) and the outer bottom border at
+              // the current-page cells. Matches Google Docs, which paints
+              // the table's tblBorders.top/bottom on every page the table
+              // spans, even when individual cell tcBorders are nil.
+              if (element.pageBreakBorderTop) {
+                nextPageTdList.forEach(td => {
+                  td.borderBgTop = element.pageBreakBorderTop
+                  if (element.pageBreakBorderTopWidth !== undefined) {
+                    td.borderWidthTop = element.pageBreakBorderTopWidth
+                  }
+                  td.isPageBreakBorderTop = true
+                })
+              }
+              if (element.pageBreakBorderBottom) {
+                currentPageTdList.forEach(td => {
+                  td.borderBgBottom = element.pageBreakBorderBottom
+                  if (element.pageBreakBorderBottomWidth !== undefined) {
+                    td.borderWidthBottom = element.pageBreakBorderBottomWidth
+                  }
+                  td.isPageBreakBorderBottom = true
+                })
+              }
 
               // Stamp a stable logical-row id on the row being split (once
               // — preserved across every further fragmentation). Every
@@ -1421,7 +1487,7 @@ export class Draw {
         metrics.height = height * scale
       } else if (element.type === ElementType.TAB) {
         metrics.width = defaultTabWidth * scale
-        metrics.height = defaultSize * scale
+        metrics.height = defaultSize * scale * PX_PER_PT
         metrics.boundingBoxDescent = 0
         metrics.boundingBoxAscent = metrics.height
       } else if (element.type === ElementType.BLOCK) {
@@ -1440,19 +1506,23 @@ export class Draw {
         if (isSuperOrSubscript) {
           element.actualSize = Math.ceil(size * 0.6)
         }
-        metrics.height = (element.actualSize || size) * scale
+        metrics.height = (element.actualSize || size) * scale * PX_PER_PT
         ctx.font = this._getFont(element)
         const fontMetrics = this.textParticle.measureText(ctx, element)
         metrics.width = fontMetrics.width * scale
         if (element.letterSpacing) {
           metrics.width += element.letterSpacing * scale
         }
-        metrics.boundingBoxAscent =
-          (element.value === ZERO
-            ? defaultSize
-            : fontMetrics.actualBoundingBoxAscent) * scale
-        metrics.boundingBoxDescent =
-          fontMetrics.actualBoundingBoxDescent * scale
+        // Use font-size-derived ascent/descent uniformly so row heights are
+        // consistent across wrapped lines, hard-break (Enter) lines, and
+        // imported-doc paragraphs. Glyph-bounding-box metrics (varies per
+        // character) caused uneven line spacing — descender-less rows came
+        // out shorter than ZERO-marker / descender rows in the same paragraph.
+        const fontPx = (element.actualSize || size) * scale * PX_PER_PT
+        const ASCENT_RATIO = 0.8
+        const DESCENT_RATIO = 0.2
+        metrics.boundingBoxAscent = fontPx * ASCENT_RATIO
+        metrics.boundingBoxDescent = fontPx * DESCENT_RATIO
         if (element.type === ElementType.SUPERSCRIPT) {
           metrics.boundingBoxAscent += metrics.height / 2
         } else if (element.type === ElementType.SUBSCRIPT) {
@@ -1469,9 +1539,11 @@ export class Draw {
         : metrics.boundingBoxAscent + rowMargin
       const height =
         rowMargin +
+        paragraphSpacingBefore +
         metrics.boundingBoxAscent +
         metrics.boundingBoxDescent +
-        rowMargin
+        rowMargin +
+        paragraphSpacingAfter
 
       const rowElement: IRowElement = Object.assign(element, {
         metrics,
@@ -1631,8 +1703,7 @@ export class Draw {
     const { rowList, pageNo, elementList, positionList, startIndex, zone } =
       payload
     // const { scale, tdPadding } = this.options
-    const { scale, tdPadding, defaultBasicRowMarginHeight, defaultRowMargin } =
-      this.options
+    const { scale, tdPadding, defaultRowMargin } = this.options
     const { isCrossRowCol, tableId } = this.range.getRange()
     let index = startIndex
     for (let i = 0; i < rowList.length; i++) {
@@ -1729,10 +1800,11 @@ export class Draw {
         }
         // 下划线记录
         if (element.underline) {
+          const lineSpacing = element.rowMargin || defaultRowMargin
+          const elSizePx =
+            (element.size || this.options.defaultSize) * PX_PER_PT * scale
           const rowMargin =
-            defaultBasicRowMarginHeight *
-            (element.rowMargin || defaultRowMargin) *
-            scale
+            (elSizePx * Math.max(1.2 * lineSpacing - 1, 0)) / 2
           this.underline.recordFillInfo(
             ctx,
             x,

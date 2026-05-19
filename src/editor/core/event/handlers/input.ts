@@ -56,6 +56,9 @@ export function input(data: string, host: CanvasEvent) {
         }
       })
     }
+    if (rangeManager.pendingStyle) {
+      Object.assign(newElement, rangeManager.pendingStyle)
+    }
     if (isComposing) {
       newElement.underline = true
     }

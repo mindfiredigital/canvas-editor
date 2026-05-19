@@ -330,5 +330,47 @@ export const tableMenus: IRegisterContextMenu[] = [
         }
       }
     ]
+  },
+  {
+    name: 'Row separator',
+    i18nPath: 'contextmenu.table.rowSeparator',
+    icon: '',
+    when: payload => {
+      return !payload.isReadonly && payload.isInTable
+    },
+    childMenus: [
+      {
+        name: 'Color',
+        i18nPath: 'contextmenu.table.rowSeparatorColor',
+        icon: 'td-bgcolor',
+        when: () => true,
+        callback: (command: Command) => {
+          new ColorPicker({
+            onConfirm(payload) {
+              if (!payload) return
+              const { value } = payload
+              if (!value) return
+              command.executeTableRowSeparator({ color: value })
+            }
+          })
+        }
+      },
+      {
+        name: 'Width',
+        i18nPath: 'contextmenu.table.rowSeparatorWidth',
+        icon: '',
+        when: () => true,
+        callback: (command: Command) => {
+          new RangePicker({
+            onConfirm(payload) {
+              if (!payload) return
+              const { value } = payload
+              if (value == null) return
+              command.executeTableRowSeparator({ width: value })
+            }
+          })
+        }
+      }
+    ]
   }
 ]

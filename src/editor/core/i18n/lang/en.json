@@ -52,7 +52,10 @@
       "bottom": "Bottom",
       "left": "Left",
       "right": "Right",
-      "borderWidth": "Cell border width"
+      "borderWidth": "Cell border width",
+      "rowSeparator": "Row separator",
+      "rowSeparatorColor": "Color",
+      "rowSeparatorWidth": "Width"
     }
   },
   "datePicker": {
