@@ -1191,8 +1191,9 @@ export class Draw {
 
         // Clear stale page-break stamps from the previous render pass so that
         // cells which moved off a page boundary don't keep their old separator.
-        // Row 0 is skipped for top-border stamps: its stamp was set by the
-        // PREVIOUS element's split in this same render pass and is still valid.
+        // Row 0 top-stamp skipped: when a continuation cloneElement was inserted
+        // at i+1 by a prior split this pass, its row-0 top stamp is still valid.
+        // _mergeTableFragments already coalesced last-render's fragments above.
         element.trList?.forEach((tr, trIdx) => {
           tr.tdList.forEach(td => {
             if (trIdx > 0) {
@@ -2411,7 +2412,7 @@ export class Draw {
         // Prepend a spacer ZERO so a small visual gap separates the
         // page-break top border line from the continuation content.
         // The marker also keeps td.value well-formed for the merge dedupe.
-        const spacer: IElement = { value: ZERO, size: 12 }
+        const spacer: IElement = { value: ZERO, size: this.options.defaultSize }
         nextTd.value =
           overflowElements[0]?.value === ZERO
             ? [spacer, ...overflowElements.slice(1)]
