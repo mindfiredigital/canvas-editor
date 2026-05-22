@@ -1189,6 +1189,30 @@ export class Draw {
           accumulatedPageHeight + tableRowMarginHeight + metrics.height >
           pageHeight
 
+        // Clear stale page-break stamps from the previous render pass so that
+        // cells which moved off a page boundary don't keep their old separator.
+        // Row 0 top-stamp skipped: when a continuation cloneElement was inserted
+        // at i+1 by a prior split this pass, its row-0 top stamp is still valid.
+        // _mergeTableFragments already coalesced last-render's fragments above.
+        element.trList?.forEach((tr, trIdx) => {
+          tr.tdList.forEach(td => {
+            if (trIdx > 0) {
+              if (td._pageBreakStampedTop) {
+                td.borderBgTop = '#ffffff'
+                td.borderWidthTop = undefined
+                td._pageBreakStampedTop = false
+              }
+              td.isPageBreakBorderTop = false
+            }
+            if (td._pageBreakStampedBottom) {
+              td.borderBgBottom = '#ffffff'
+              td.borderWidthBottom = undefined
+              td._pageBreakStampedBottom = false
+            }
+            td.isPageBreakBorderBottom = false
+          })
+        })
+
         // --- table split (only at top level — nested td.value never paginates) ---
         const isTopLevel = elementList === this.elementList
         if (tableExceedsPage && isTopLevel) {
@@ -1300,18 +1324,24 @@ export class Draw {
               // continuation fragment.
               if (element.pageBreakBorderBottom && trList.length) {
                 trList[trList.length - 1].tdList.forEach(td => {
-                  td.borderBgBottom = element.pageBreakBorderBottom
-                  if (element.pageBreakBorderBottomWidth !== undefined) {
-                    td.borderWidthBottom = element.pageBreakBorderBottomWidth
+                  if (!td.borderBgBottom || td.borderBgBottom === '#ffffff') {
+                    td.borderBgBottom = element.pageBreakBorderBottom
+                    if (element.pageBreakBorderBottomWidth !== undefined) {
+                      td.borderWidthBottom = element.pageBreakBorderBottomWidth
+                    }
+                    td._pageBreakStampedBottom = true
                   }
                   td.isPageBreakBorderBottom = true
                 })
               }
               if (cloneElement.pageBreakBorderTop && cloneElement.trList?.length) {
                 cloneElement.trList[0].tdList.forEach(td => {
-                  td.borderBgTop = cloneElement.pageBreakBorderTop
-                  if (cloneElement.pageBreakBorderTopWidth !== undefined) {
-                    td.borderWidthTop = cloneElement.pageBreakBorderTopWidth
+                  if (!td.borderBgTop || td.borderBgTop === '#ffffff') {
+                    td.borderBgTop = cloneElement.pageBreakBorderTop
+                    if (cloneElement.pageBreakBorderTopWidth !== undefined) {
+                      td.borderWidthTop = cloneElement.pageBreakBorderTopWidth
+                    }
+                    td._pageBreakStampedTop = true
                   }
                   td.isPageBreakBorderTop = true
                 })
@@ -1362,18 +1392,24 @@ export class Draw {
               // spans, even when individual cell tcBorders are nil.
               if (element.pageBreakBorderTop) {
                 nextPageTdList.forEach(td => {
-                  td.borderBgTop = element.pageBreakBorderTop
-                  if (element.pageBreakBorderTopWidth !== undefined) {
-                    td.borderWidthTop = element.pageBreakBorderTopWidth
+                  if (!td.borderBgTop || td.borderBgTop === '#ffffff') {
+                    td.borderBgTop = element.pageBreakBorderTop
+                    if (element.pageBreakBorderTopWidth !== undefined) {
+                      td.borderWidthTop = element.pageBreakBorderTopWidth
+                    }
+                    td._pageBreakStampedTop = true
                   }
                   td.isPageBreakBorderTop = true
                 })
               }
               if (element.pageBreakBorderBottom) {
                 currentPageTdList.forEach(td => {
-                  td.borderBgBottom = element.pageBreakBorderBottom
-                  if (element.pageBreakBorderBottomWidth !== undefined) {
-                    td.borderWidthBottom = element.pageBreakBorderBottomWidth
+                  if (!td.borderBgBottom || td.borderBgBottom === '#ffffff') {
+                    td.borderBgBottom = element.pageBreakBorderBottom
+                    if (element.pageBreakBorderBottomWidth !== undefined) {
+                      td.borderWidthBottom = element.pageBreakBorderBottomWidth
+                    }
+                    td._pageBreakStampedBottom = true
                   }
                   td.isPageBreakBorderBottom = true
                 })
@@ -2373,12 +2409,14 @@ export class Draw {
       nextTd.rowList = this.updateRowList(overflowRowList)
       if (overflowRowList.length) {
         const overflowElements = this.rebuildValueFromRowList(nextTd.rowList)
-        // Ensure cell-start ZERO marker so the continuation cell is a
-        // well-formed td.value (merge dedupes the duplicate marker later)
+        // Prepend a spacer ZERO so a small visual gap separates the
+        // page-break top border line from the continuation content.
+        // The marker also keeps td.value well-formed for the merge dedupe.
+        const spacer: IElement = { value: ZERO, size: this.options.defaultSize }
         nextTd.value =
           overflowElements[0]?.value === ZERO
-            ? overflowElements
-            : [{ value: ZERO } as IElement, ...overflowElements]
+            ? [spacer, ...overflowElements.slice(1)]
+            : [spacer, ...overflowElements]
       } else {
         nextTd.value = [{ value: ZERO }]
       }

@@ -11457,7 +11457,7 @@ class Draw {
     return `${el.italic ? "italic " : ""}${el.bold ? "bold " : ""}${size * scale * PX_PER_PT}px ${font}`;
   }
   computeRowList(innerWidth, elementList) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
     const { defaultSize, defaultRowMargin, scale, tdPadding, defaultTabWidth } = this.options;
     const defaultBasicRowMarginHeight = this.getDefaultBasicRowMarginHeight();
     const canvas = document.createElement("canvas");
@@ -11605,6 +11605,24 @@ class Draw {
           accumulatedPageHeight = marginHeight;
         }
         const tableExceedsPage = accumulatedPageHeight + tableRowMarginHeight + metrics.height > pageHeight;
+        (_d = element.trList) == null ? void 0 : _d.forEach((tr, trIdx) => {
+          tr.tdList.forEach((td) => {
+            if (trIdx > 0) {
+              if (td._pageBreakStampedTop) {
+                td.borderBgTop = "#ffffff";
+                td.borderWidthTop = void 0;
+                td._pageBreakStampedTop = false;
+              }
+              td.isPageBreakBorderTop = false;
+            }
+            if (td._pageBreakStampedBottom) {
+              td.borderBgBottom = "#ffffff";
+              td.borderWidthBottom = void 0;
+              td._pageBreakStampedBottom = false;
+            }
+            td.isPageBreakBorderBottom = false;
+          });
+        });
         const isTopLevel = elementList === this.elementList;
         if (tableExceedsPage && isTopLevel) {
           let deleteStart = 0;
@@ -11616,7 +11634,7 @@ class Draw {
               const trHeight = tr.height * scale;
               const trExceedsPage = accumulatedPageHeight + tableRowMarginHeight + accumulatedTrHeight + trHeight > pageHeight;
               if (trExceedsPage) {
-                const isSpannedRow = ((_d = element.colgroup) == null ? void 0 : _d.length) !== tr.tdList.length;
+                const isSpannedRow = ((_e = element.colgroup) == null ? void 0 : _e.length) !== tr.tdList.length;
                 if (isSpannedRow)
                   deleteCount = 0;
                 else {
@@ -11669,18 +11687,24 @@ class Draw {
                 metrics.boundingBoxDescent = metrics.height;
                 if (element.pageBreakBorderBottom && trList.length) {
                   trList[trList.length - 1].tdList.forEach((td) => {
-                    td.borderBgBottom = element.pageBreakBorderBottom;
-                    if (element.pageBreakBorderBottomWidth !== void 0) {
-                      td.borderWidthBottom = element.pageBreakBorderBottomWidth;
+                    if (!td.borderBgBottom || td.borderBgBottom === "#ffffff") {
+                      td.borderBgBottom = element.pageBreakBorderBottom;
+                      if (element.pageBreakBorderBottomWidth !== void 0) {
+                        td.borderWidthBottom = element.pageBreakBorderBottomWidth;
+                      }
+                      td._pageBreakStampedBottom = true;
                     }
                     td.isPageBreakBorderBottom = true;
                   });
                 }
-                if (cloneElement.pageBreakBorderTop && ((_e = cloneElement.trList) == null ? void 0 : _e.length)) {
+                if (cloneElement.pageBreakBorderTop && ((_f = cloneElement.trList) == null ? void 0 : _f.length)) {
                   cloneElement.trList[0].tdList.forEach((td) => {
-                    td.borderBgTop = cloneElement.pageBreakBorderTop;
-                    if (cloneElement.pageBreakBorderTopWidth !== void 0) {
-                      td.borderWidthTop = cloneElement.pageBreakBorderTopWidth;
+                    if (!td.borderBgTop || td.borderBgTop === "#ffffff") {
+                      td.borderBgTop = cloneElement.pageBreakBorderTop;
+                      if (cloneElement.pageBreakBorderTopWidth !== void 0) {
+                        td.borderWidthTop = cloneElement.pageBreakBorderTopWidth;
+                      }
+                      td._pageBreakStampedTop = true;
                     }
                     td.isPageBreakBorderTop = true;
                   });
@@ -11712,18 +11736,24 @@ class Draw {
               });
               if (element.pageBreakBorderTop) {
                 nextPageTdList.forEach((td) => {
-                  td.borderBgTop = element.pageBreakBorderTop;
-                  if (element.pageBreakBorderTopWidth !== void 0) {
-                    td.borderWidthTop = element.pageBreakBorderTopWidth;
+                  if (!td.borderBgTop || td.borderBgTop === "#ffffff") {
+                    td.borderBgTop = element.pageBreakBorderTop;
+                    if (element.pageBreakBorderTopWidth !== void 0) {
+                      td.borderWidthTop = element.pageBreakBorderTopWidth;
+                    }
+                    td._pageBreakStampedTop = true;
                   }
                   td.isPageBreakBorderTop = true;
                 });
               }
               if (element.pageBreakBorderBottom) {
                 currentPageTdList.forEach((td) => {
-                  td.borderBgBottom = element.pageBreakBorderBottom;
-                  if (element.pageBreakBorderBottomWidth !== void 0) {
-                    td.borderWidthBottom = element.pageBreakBorderBottomWidth;
+                  if (!td.borderBgBottom || td.borderBgBottom === "#ffffff") {
+                    td.borderBgBottom = element.pageBreakBorderBottom;
+                    if (element.pageBreakBorderBottomWidth !== void 0) {
+                      td.borderWidthBottom = element.pageBreakBorderBottomWidth;
+                    }
+                    td._pageBreakStampedBottom = true;
                   }
                   td.isPageBreakBorderBottom = true;
                 });
@@ -11761,7 +11791,7 @@ class Draw {
                   const N = range.startIndex;
                   const endN = range.endIndex;
                   const currentTd = cursorTdIdx !== void 0 ? currentPageTdList[cursorTdIdx] : void 0;
-                  const currentLen = (_g = (_f = currentTd == null ? void 0 : currentTd.value) == null ? void 0 : _f.length) != null ? _g : 0;
+                  const currentLen = (_h = (_g = currentTd == null ? void 0 : currentTd.value) == null ? void 0 : _g.length) != null ? _h : 0;
                   if (cursorTdIdx !== void 0 && N >= 0 && N < currentLen) {
                     positionContext.trIndex = trList.length - 1;
                     this.position.setPositionContext(positionContext);
@@ -11884,7 +11914,7 @@ class Draw {
           startIndex: i,
           elementList: [rowElement],
           ascent,
-          rowFlex: (_h = elementList[i + 1]) == null ? void 0 : _h.rowFlex,
+          rowFlex: (_i = elementList[i + 1]) == null ? void 0 : _i.rowFlex,
           isPageBreak: element.type === ElementType.PAGE_BREAK
         };
         if (element.listId) {
@@ -12408,7 +12438,8 @@ class Draw {
       nextTd.rowList = this.updateRowList(overflowRowList);
       if (overflowRowList.length) {
         const overflowElements = this.rebuildValueFromRowList(nextTd.rowList);
-        nextTd.value = ((_c = overflowElements[0]) == null ? void 0 : _c.value) === ZERO ? overflowElements : [{ value: ZERO }, ...overflowElements];
+        const spacer = { value: ZERO, size: this.options.defaultSize };
+        nextTd.value = ((_c = overflowElements[0]) == null ? void 0 : _c.value) === ZERO ? [spacer, ...overflowElements.slice(1)] : [spacer, ...overflowElements];
       } else {
         nextTd.value = [{ value: ZERO }];
       }
