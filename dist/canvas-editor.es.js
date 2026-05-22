@@ -12438,7 +12438,7 @@ class Draw {
       nextTd.rowList = this.updateRowList(overflowRowList);
       if (overflowRowList.length) {
         const overflowElements = this.rebuildValueFromRowList(nextTd.rowList);
-        const spacer = { value: ZERO, size: 12 };
+        const spacer = { value: ZERO, size: this.options.defaultSize };
         nextTd.value = ((_c = overflowElements[0]) == null ? void 0 : _c.value) === ZERO ? [spacer, ...overflowElements.slice(1)] : [spacer, ...overflowElements];
       } else {
         nextTd.value = [{ value: ZERO }];
