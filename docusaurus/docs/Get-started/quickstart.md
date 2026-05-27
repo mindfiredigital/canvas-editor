@@ -4,110 +4,112 @@ sidebar_position: 2
 
 # Quick Start
 
-Let's discover **Canvas Editor in less than 5 minutes**.
+Mount Canvas Editor in under 5 minutes.
 
-## Getting Started
+## Prerequisites
 
-- **Initialization**:  To get started, you'll need to initialize the canvas document editor within your project. This involves specifying the container element where the editor will be embedded.
+- `@mindfiredigital/canvas-editor` installed — see [Installation](./Installation).
+- A DOM container element where the editor will render.
 
-## toolbar.jsx
-```javascript
-import {
-  DOMEventHandlers
-} from '@mindfiredigital/canvas-editor'
+## 1. Install
 
-import React from 'react';
-
-export const test = () =>{
-    return {
-        <ButtonWrapper 
-            title="bold" 
-            handleClick={DOMEventHandlers.handleBold}>
-                <FormatBoldIcon />
-        </ButtonWrapper>
-        <ButtonWrapper
-            title="italic"
-            handleClick={DOMEventHandlers.handleItalic}>
-                <FormatItalicIcon />
-        </ButtonWrapper>
-        <ButtonWrapper
-            title="underline"
-            handleClick={DOMEventHandlers.handleUnderline}>
-            <FormatUnderlinedIcon />
-        </ButtonWrapper>
-    }
-}
+```bash
+npm install @mindfiredigital/canvas-editor
 ```
-## CanvasEditor.jsx
-```javascript
 
-import {DOMEventHandlers} from "@mindfiredigital/canvas-editor";
-import React, { useEffect, useState } from "react";
-import "./CanvasEditor.scss";
-import MarginRuler from "../MarginRuler/MarginRuler";
+## 2. Vanilla JS
 
+```html
+<div class="canvas-editor"></div>
+```
 
-const CanvasEditor = (function Editor(ref) {
+```js
+import Editor, { EditorMode, PageMode } from '@mindfiredigital/canvas-editor'
 
-  const [dropdown, setDropdown] = useState({
-    left: 1180,
-    top: 250,
-    visiblity: false,
-  });
-  const [editorContent, setEditorContent] = useState([]);
+const container = document.querySelector('.canvas-editor')
 
-  const [selectedText, setSelectedText] = useState("");
+const options = {
+  width: 816,
+  height: 1056,
+  mode: EditorMode.EDIT,
+  pageMode: PageMode.PAGING,
+  pageNumber: { format: '{pageNo}/{pageCount}' },
+  minSize: 1,
+  maxSize: 72,
+}
 
-  const { documentId } = useParams();
+const editor = new Editor(container, [], options)
+```
+
+## 3. React — Editor Component
+
+`CanvasEditor.jsx` — mounts the editor on a DOM node and stores the instance on a ref.
+
+```jsx
+import { useEffect, useRef } from 'react'
+import Editor, { EditorMode, PageMode } from '@mindfiredigital/canvas-editor'
+
+export default function CanvasEditor({ editorRef }) {
+  const containerRef = useRef(null)
 
   useEffect(() => {
-    const container = document.querySelector(".canvas-editor");
-
-    const editorOptions = {
-      height: 1056,
+    const options = {
       width: 816,
+      height: 1056,
       mode: EditorMode.EDIT,
       pageMode: PageMode.PAGING,
-      pageNumber: {
-        format: "{pageNo}/{pageCount}",
-      },
+      pageNumber: { format: '{pageNo}/{pageCount}' },
       minSize: 1,
       maxSize: 72,
-    };
+    }
+    editorRef.current = new Editor(containerRef.current, [], options)
+  }, [editorRef])
 
-    DOMEventHandlers.register(container, editorContent, editorOptions);
-  }, []);
-
-  return (
-    <div className="canvas-editor-main">
-      <div className="canvas-editor editor" ref={ref}>
-        <MarginRuler />
-      </div>
-    </div>
-  );
-});
-
-export default CanvasEditor;
+  return <div ref={containerRef} className="canvas-editor" />
+}
 ```
 
-## DocumentEditor
-```javascript
+## 4. React — Toolbar
 
-import React, { useRef } from "react";
-import CanvasEditor from "./CanvasEditor";
-import EditorToolbar from "./toolbar";
+`Toolbar.jsx` — wires `DOMEventHandlers` to your own buttons.
 
-function DocumentEditor() {
-  const canvasRef = useRef(null);
+```jsx
+import { DOMEventHandlers } from '@mindfiredigital/canvas-editor'
+
+export default function Toolbar() {
   return (
     <>
-      <EditorToolbar ref={canvasRef} />
-      <CanvasEditor ref={canvasRef} />
+      <button title="bold"      onClick={DOMEventHandlers.handleBold}>B</button>
+      <button title="italic"    onClick={DOMEventHandlers.handleItalic}>I</button>
+      <button title="underline" onClick={DOMEventHandlers.handleUnderline}>U</button>
     </>
-  );
+  )
 }
-
-These code snippets provide a professional and corrected version of the initialization process for the Document Editor. You can integrate this editor into your project for a smooth document editing experience.
-
-export default DocumentEditor;
 ```
+
+## 5. Compose
+
+```jsx
+import { useRef } from 'react'
+import CanvasEditor from './CanvasEditor'
+import Toolbar from './Toolbar'
+
+export default function DocumentEditor() {
+  const editorRef = useRef(null)
+  return (
+    <>
+      <Toolbar />
+      <CanvasEditor editorRef={editorRef} />
+    </>
+  )
+}
+```
+
+:::tip Editor Instance
+Keep a ref to the `Editor` instance to call programmatic APIs later (set content, get content, focus, etc.).
+:::
+
+## Next Steps
+
+- [DOM Events](../references/dom-event) — the complete handler reference
+- [How to Contribute](../contributors/how-to-contribute) — file an issue or open a PR

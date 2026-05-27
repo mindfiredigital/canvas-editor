@@ -1,4 +1,5 @@
 import { IEditorOption } from '../../..'
+import { PX_PER_PT } from '../../../dataset/constant/Common'
 import { DeepRequired } from '../../../interface/Common'
 import { Draw } from '../Draw'
 
@@ -22,7 +23,7 @@ export class Watermark {
     const y = height / 2
     ctx.save()
     ctx.globalAlpha = opacity
-    ctx.font = `${size * scale}px ${font}`
+    ctx.font = `${size * scale * PX_PER_PT}px ${font}`
     ctx.fillStyle = color
     // 移动到中心位置再旋转
     const measureText = ctx.measureText(data)

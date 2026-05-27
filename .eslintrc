@@ -37,7 +37,7 @@
     "no-constant-condition": ["error", {
       "checkLoops": false
     }],
-    "semi": [1, "never"],
+    "semi": [0, "never"],
     "quotes": [1, "single", {
       "allowTemplateLiterals": true
     }]

@@ -31,4 +31,8 @@ export interface ITd {
   borderWidthBottom?: number
   borderWidthLeft?: number
   borderWidthRight?: number
+  isPageBreakBorderTop?: boolean
+  isPageBreakBorderBottom?: boolean
+  _pageBreakStampedTop?: boolean    // Draw.ts overwrote borderBgTop from #ffffff
+  _pageBreakStampedBottom?: boolean // Draw.ts overwrote borderBgBottom from #ffffff
 }

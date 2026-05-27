@@ -6,7 +6,13 @@
       "paste": "Paste",
       "selectAll": "Select all",
       "print": "Print",
-      "hyperlink": "hyperlink"
+      "hyperlink": "Hyperlink",
+      "hr": "Horizontal rule",
+      "hrType": {
+        "plain": "Plain",
+        "dashed": "Dashed",
+        "dotted": "Dotted"
+      }
     },
     "control": {
       "delete": "Delete control"
@@ -52,7 +58,10 @@
       "bottom": "Bottom",
       "left": "Left",
       "right": "Right",
-      "borderWidth": "Cell border width"
+      "borderWidth": "Cell border width",
+      "rowSeparator": "Row separator",
+      "rowSeparatorColor": "Color",
+      "rowSeparatorWidth": "Width"
     }
   },
   "datePicker": {

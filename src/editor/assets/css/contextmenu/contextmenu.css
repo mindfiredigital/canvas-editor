@@ -79,6 +79,10 @@
   background-image: url(../../../assets/images/print.svg);
 }
 
+.ce-contextmenu-separator {
+  background-image: url(../../../assets/images/separator.svg);
+}
+
 .ce-contextmenu-image {
   background-image: url(../../../assets/images/image.svg);
 }

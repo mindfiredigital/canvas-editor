@@ -1,3 +1,4 @@
+import { PX_PER_PT } from '../../../dataset/constant/Common'
 import { FORMAT_PLACEHOLDER } from '../../../dataset/constant/PageNumber'
 import { NumberType } from '../../../dataset/enum/Common'
 import { PageMode } from '../../../dataset/enum/Editor'
@@ -62,7 +63,7 @@ export class PageNumber {
     const y = height - pageNumberBottom
     ctx.save()
     ctx.fillStyle = color
-    ctx.font = `${size * scale}px ${font}`
+    ctx.font = `${size * scale * PX_PER_PT}px ${font}`
     // 计算x位置-居左、居中、居右
     let x = 0
     const margins = this.draw.getMargins()

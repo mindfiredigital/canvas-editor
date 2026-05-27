@@ -220,7 +220,13 @@ export class CommandAdapt {
     selection.forEach(el => {
       el.font = payload
     })
-    this.draw.render({ isSetCursor: false })
+    const applyRender = () => this.draw.render({ isSetCursor: false })
+    const fonts = (document as any)?.fonts
+    if (fonts?.load) {
+      fonts.load(`16px "${payload}"`).then(applyRender).catch(applyRender)
+    } else {
+      applyRender()
+    }
   }
 
   public size(payload: number) {
@@ -305,11 +311,7 @@ export class CommandAdapt {
       })
       this.draw.render({ isSetCursor: false })
     } else {
-      const elementList = this.draw.getElementList()
-      const endIndex = elementList.length - 1
-      const enterElement = elementList[endIndex]
-      enterElement.bold = !enterElement.bold
-      this.draw.render({ curIndex: endIndex, isCompute: false })
+      this.range.togglePendingStyle('bold')
     }
   }
 
@@ -324,11 +326,7 @@ export class CommandAdapt {
       })
       this.draw.render({ isSetCursor: false })
     } else {
-      const elementList = this.draw.getElementList()
-      const endIndex = elementList.length - 1
-      const enterElement = elementList[endIndex]
-      enterElement.italic = !enterElement.italic
-      this.draw.render({ curIndex: endIndex, isCompute: false })
+      this.range.togglePendingStyle('italic')
     }
   }
 
@@ -343,11 +341,7 @@ export class CommandAdapt {
       })
       this.draw.render({ isSetCursor: false })
     } else {
-      const elementList = this.draw.getElementList()
-      const endIndex = elementList.length - 1
-      const enterElement = elementList[endIndex]
-      enterElement.underline = !enterElement.underline
-      this.draw.render({ curIndex: endIndex, isCompute: false })
+      this.range.togglePendingStyle('underline')
     }
   }
 
@@ -355,7 +349,10 @@ export class CommandAdapt {
     const isReadonly = this.draw.isReadonly()
     if (isReadonly) return
     const selection = this.range.getSelection()
-    if (!selection) return
+    if (!selection) {
+      this.range.togglePendingStyle('strikeout')
+      return
+    }
     const noStrikeoutIndex = selection.findIndex(s => !s.strikeout)
     selection.forEach(el => {
       el.strikeout = !!~noStrikeoutIndex
@@ -431,7 +428,11 @@ export class CommandAdapt {
     const selection = this.range.getSelection()
     if (!selection) return
     selection.forEach(el => {
-      el.color = payload
+      if (payload) {
+        el.color = payload
+      } else {
+        delete el.color
+      }
     })
     this.draw.render({
       isSetCursor: false,
@@ -445,7 +446,11 @@ export class CommandAdapt {
     const selection = this.range.getSelection()
     if (!selection) return
     selection.forEach(el => {
-      el.highlight = payload
+      if (payload) {
+        el.highlight = payload
+      } else {
+        delete el.highlight
+      }
     })
     this.draw.render({
       isSetCursor: false,
@@ -570,6 +575,44 @@ export class CommandAdapt {
       }
     }
     // 光标定位
+    const isSetCursor = startIndex === endIndex
+    const curIndex = isSetCursor ? endIndex : startIndex
+    this.draw.render({ curIndex, isSetCursor })
+  }
+
+  public paragraphSpacing(payload: {
+    before?: number
+    after?: number
+  }) {
+    const isReadonly = this.draw.isReadonly()
+    if (isReadonly) return
+    const { startIndex, endIndex } = this.range.getRange()
+    if (!~startIndex && !~endIndex) return
+    const rangeRow = this.range.getRangeRow()
+    if (!rangeRow) return
+    const positionList = this.position.getPositionList()
+    const elementList = this.draw.getElementList()
+    // Find paragraph-start ZERO elements within selection's rows.
+    // For a row inside a paragraph (no leading ZERO), walk back to that paragraph's ZERO.
+    const touchedZeroIndexes = new Set<number>()
+    for (let p = 0; p < positionList.length; p++) {
+      const position = positionList[p]
+      const rowSet = rangeRow.get(position.pageNo)
+      if (!rowSet) continue
+      if (!rowSet.has(position.rowNo)) continue
+      // Walk back to nearest ZERO at or before p
+      let q = p
+      while (q >= 0 && elementList[q].value !== ZERO) q--
+      if (q >= 0) touchedZeroIndexes.add(q)
+    }
+    touchedZeroIndexes.forEach(idx => {
+      if (payload.before !== undefined) {
+        elementList[idx].paragraphSpacingBefore = payload.before
+      }
+      if (payload.after !== undefined) {
+        elementList[idx].paragraphSpacingAfter = payload.after
+      }
+    })
     const isSetCursor = startIndex === endIndex
     const curIndex = isSetCursor ? endIndex : startIndex
     this.draw.render({ curIndex, isSetCursor })
@@ -1417,6 +1460,33 @@ export class CommandAdapt {
       return
     }
     curTd.borderWidthRight = payload
+    const { endIndex } = this.range.getRange()
+    this.draw.render({
+      curIndex: endIndex
+    })
+  }
+  public tableRowSeparator(payload: { color?: string; width?: number }) {
+    const isReadonly = this.draw.isReadonly()
+    if (isReadonly) return
+    const positionContext = this.position.getPositionContext()
+    if (!positionContext.isTable) return
+    const { index, trIndex } = positionContext
+    const originalElementList = this.draw.getOriginalElementList()
+    const element = originalElementList[index!]
+    const tr = element?.trList?.[trIndex!]
+    if (!tr) return
+    const trNext = element!.trList![trIndex! + 1]
+    const { color, width } = payload
+    tr.tdList.forEach(td => {
+      if (color !== undefined) td.borderBgBottom = color
+      if (width !== undefined) td.borderWidthBottom = width
+    })
+    if (trNext) {
+      trNext.tdList.forEach(td => {
+        if (color !== undefined) td.borderBgTop = color
+        if (width !== undefined) td.borderWidthTop = width
+      })
+    }
     const { endIndex } = this.range.getRange()
     this.draw.render({
       curIndex: endIndex

@@ -22,6 +22,7 @@ export class RangeManager {
   private eventBus: EventBus<EventBusMap>
   private position: Position
   private historyManager: HistoryManager
+  public pendingStyle: Partial<IElement> | null
 
   constructor(draw: Draw) {
     this.draw = draw
@@ -34,6 +35,24 @@ export class RangeManager {
       startIndex: -1,
       endIndex: -1
     }
+    this.pendingStyle = null
+  }
+
+  public togglePendingStyle(key: keyof IElement) {
+    const elementList = this.draw.getElementList()
+    const { startIndex, endIndex } = this.range
+    if (startIndex !== endIndex) return
+    if (!~startIndex) return
+    const anchor = getAnchorElement(elementList, startIndex)
+    const current =
+      this.pendingStyle && key in this.pendingStyle
+        ? (this.pendingStyle as Record<string, unknown>)[key as string]
+        : (anchor as Record<string, unknown> | null)?.[key as string]
+    this.pendingStyle = {
+      ...(this.pendingStyle || {}),
+      [key]: !current
+    } as Partial<IElement>
+    this.setRangeStyle()
   }
 
   public getRange(): IRange {
@@ -272,10 +291,16 @@ export class RangeManager {
     // 富文本
     const font = curElement.font || this.options.defaultFont
     const size = curElement.size || this.options.defaultSize
-    const bold = !~curElementList.findIndex(el => !el.bold)
-    const italic = !~curElementList.findIndex(el => !el.italic)
-    const underline = !~curElementList.findIndex(el => !el.underline)
-    const strikeout = !~curElementList.findIndex(el => !el.strikeout)
+    let bold = !~curElementList.findIndex(el => !el.bold)
+    let italic = !~curElementList.findIndex(el => !el.italic)
+    let underline = !~curElementList.findIndex(el => !el.underline)
+    let strikeout = !~curElementList.findIndex(el => !el.strikeout)
+    if (this.pendingStyle && startIndex === endIndex) {
+      if (this.pendingStyle.bold !== undefined) bold = !!this.pendingStyle.bold
+      if (this.pendingStyle.italic !== undefined) italic = !!this.pendingStyle.italic
+      if (this.pendingStyle.underline !== undefined) underline = !!this.pendingStyle.underline
+      if (this.pendingStyle.strikeout !== undefined) strikeout = !!this.pendingStyle.strikeout
+    }
     const color = curElement.color || null
     const highlight = curElement.highlight || null
     const rowFlex = curElement.rowFlex || null
@@ -346,10 +371,16 @@ export class RangeManager {
     // 富文本
     const font = curElement.font || this.options.defaultFont
     const size = curElement.size || this.options.defaultSize
-    const bold = !~curElementList.findIndex(el => !el.bold)
-    const italic = !~curElementList.findIndex(el => !el.italic)
-    const underline = !~curElementList.findIndex(el => !el.underline)
-    const strikeout = !~curElementList.findIndex(el => !el.strikeout)
+    let bold = !~curElementList.findIndex(el => !el.bold)
+    let italic = !~curElementList.findIndex(el => !el.italic)
+    let underline = !~curElementList.findIndex(el => !el.underline)
+    let strikeout = !~curElementList.findIndex(el => !el.strikeout)
+    if (this.pendingStyle && startIndex === endIndex) {
+      if (this.pendingStyle.bold !== undefined) bold = !!this.pendingStyle.bold
+      if (this.pendingStyle.italic !== undefined) italic = !!this.pendingStyle.italic
+      if (this.pendingStyle.underline !== undefined) underline = !!this.pendingStyle.underline
+      if (this.pendingStyle.strikeout !== undefined) strikeout = !!this.pendingStyle.strikeout
+    }
     const color = curElement.color || null
     const highlight = curElement.highlight || null
     const rowFlex = curElement.rowFlex || null
