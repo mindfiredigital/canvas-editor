@@ -524,7 +524,6 @@ export class CommandAdapt {
         }
       }
     })
-    console.log('changeElementList: ', changeElementList)
     // 光标定位
     const isSetCursor = startIndex === endIndex
     const curIndex = isSetCursor ? endIndex : startIndex

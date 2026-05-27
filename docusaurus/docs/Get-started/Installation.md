@@ -17,16 +17,19 @@ sidebar_position: 1
 Pick the package manager you use:
 
 **npm**
+
 ```bash
 npm install @mindfiredigital/canvas-editor
 ```
 
 **yarn**
+
 ```bash
 yarn add @mindfiredigital/canvas-editor
 ```
 
 **pnpm**
+
 ```bash
 pnpm add @mindfiredigital/canvas-editor
 ```

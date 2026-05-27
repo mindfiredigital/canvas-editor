@@ -14,6 +14,7 @@
 ---
 
 ## Table of Contents
+
 - [Features](#features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
@@ -25,6 +26,7 @@
 - [License](#license)
 
 ## Features
+
 - **Canvas / SVG rendering** — pixel-accurate layout, page-aware editing.
 - **Tables** — insert and edit tables inside the document.
 - **Exported DOM handlers** — drive the editor from any toolbar component (React, Vue, plain JS).
