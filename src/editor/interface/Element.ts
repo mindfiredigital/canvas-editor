@@ -46,6 +46,12 @@ export interface IListElement {
   listStyle?: ListStyle
   listId?: string
   listWrap?: boolean
+  // Per-list override for the row-left indent (in px before scale). Set on
+  // the first element of a listId group to push the wrap-row offsetX wider
+  // than the default UN_COUNT_STYLE_WIDTH. Used by importers that emit a
+  // manual indent before the bullet glyph and need wrapped continuation
+  // rows to align with the post-bullet text.
+  listIndentWidth?: number
 }
 
 export interface ITableAttr {

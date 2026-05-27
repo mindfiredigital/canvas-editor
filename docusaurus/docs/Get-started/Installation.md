@@ -4,23 +4,59 @@ sidebar_position: 1
 
 # Installation
 
-canvas-editor is essentially a set of npm [packages](https://github.com/mindfiredigital/canvas-editor).
+`@mindfiredigital/canvas-editor` ships as a single npm package. Source lives at [github.com/mindfiredigital/canvas-editor](https://github.com/mindfiredigital/canvas-editor).
 
-## Requirements
+## Prerequisites
 
-- [Node.js](https://nodejs.org/en/download/) version 16.14 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+- **Node.js** `16.14` or higher for build tooling. The published bundle runs in any modern browser (ES2015+).
+- A bundler that handles ES modules (Vite, webpack 5, Rollup, esbuild, Parcel, Next.js, CRA, etc.).
+- A package manager: **npm**, **yarn**, or **pnpm**.
 
-## Installation
+## Install
 
-To install the `@mindfiredigital/canvas-editor` npm package in your project
+Pick the package manager you use:
 
-The `@mindfiredigital/canvas-editor` will automatically be added to your project after you run the command:
-
+**npm**
 ```bash
-npm i @mindfiredigital/canvas-editor
+npm install @mindfiredigital/canvas-editor
 ```
 
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
+**yarn**
+```bash
+yarn add @mindfiredigital/canvas-editor
+```
 
-The command also installs all necessary dependencies you need to run Canvas Editor.
+**pnpm**
+```bash
+pnpm add @mindfiredigital/canvas-editor
+```
+
+:::info Public Scope
+The package is published under the public scope `@mindfiredigital` on the npm registry — no auth token needed.
+:::
+
+## What's in the Bundle
+
+| File | Format | Purpose |
+|---|---|---|
+| `dist/canvas-editor.es.js` | ESM | Default `module` entry — used by modern bundlers |
+| `dist/canvas-editor.umd.js` | UMD | Default `main` entry — Node / legacy bundlers |
+| `dist/src/editor/index.d.ts` | TypeScript types | IDE autocomplete and type-checking |
+
+:::tip CSS Injection
+CSS is injected automatically by the bundle — no separate stylesheet import required.
+:::
+
+## Verify the Install
+
+```js
+import Editor from '@mindfiredigital/canvas-editor'
+console.log(typeof Editor) // "function"
+```
+
+If the import resolves and logs `"function"`, you're ready to mount the editor.
+
+## Next Steps
+
+- [Quick Start](./quickstart) — mount the editor in your app
+- [DOM Events](../references/dom-event) — full toolbar handler reference

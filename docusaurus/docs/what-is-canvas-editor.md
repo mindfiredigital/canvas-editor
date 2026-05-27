@@ -3,15 +3,42 @@ sidebar_position: 1
 ---
 
 # What is Canvas Editor?
-**Canvas Editor** is a project that utilizes and extends the [canvas-editor-plugin](https://github.com/Hufe921/canvas-editor-plugin). It incorporates various useful features to enhance its functionality, including table support, font size optimization, and the export of essential DOM handlers. The project is a valuable contribution to the open-source community, and the developers express their gratitude for those who have contributed to it.
 
-If you are interested in learning more about the Canvas Editor plugin, you can refer to its [documentation](https://hufe.club/canvas-editor-docs/).
+**Canvas Editor** is a rich text editor that renders documents on `<canvas>` / SVG instead of `contenteditable`. It extends [canvas-editor-plugin](https://github.com/Hufe921/canvas-editor-plugin) with table support, improved font sizing, and exported DOM handlers so any UI framework can drive the toolbar.
+
+:::tip Upstream Reference
+Engine internals are documented at [hufe.club/canvas-editor-docs](https://hufe.club/canvas-editor-docs/). This site covers the `@mindfiredigital/canvas-editor` distribution and its public API.
+:::
+
+## Why canvas?
+
+Canvas-based rendering gives pixel-accurate, paginated, print-ready layout that browser-native editing cannot match — useful for EMR forms, contracts, reports, and any document where the on-screen view must equal the print view.
 
 ## Key Features
-**Event Handling**: The project addresses the issue of DOM handlers that were not initially exported, making them available for use by others.
 
-**New Feature** - Tables: Canvas Editor introduces a new feature that allows users to create and work with tables within the canvas.
+- **Pagination** — page-aware editing with headers, footers, and page numbers.
+- **Tables** — insert, navigate, and edit tables inline.
+- **Exported DOM handlers** — bind bold / italic / list / image / table actions to any toolbar UI (React, Vue, plain JS).
+- **Improved font sizing** — more predictable size handling than upstream defaults.
+- **TypeScript** — full type definitions shipped in the package.
+- **Framework-agnostic** — no React/Vue runtime dependency in the bundle.
 
-**Improved Font Size**: Font size optimization has been implemented to enhance readability and improve the overall user experience when using the Canvas Editor.
+## When to Use
 
-This project aims to provide a versatile and user-friendly canvas-based text editor with these added features.
+- Building EMR / clinical document editors
+- Contract or legal document authoring with strict pagination
+- Report generators where print fidelity matters
+- Any product needing a print-equals-screen WYSIWYG experience
+
+## Quick Install
+
+```bash
+npm install @mindfiredigital/canvas-editor
+```
+
+## Next Steps
+
+- [Installation](./Get-started/Installation) — requirements and supported bundlers
+- [Quick Start](./Get-started/quickstart) — mount the editor in under 5 minutes
+- [DOM Events](./references/dom-event) — toolbar handler reference
+- [How to Contribute](./contributors/how-to-contribute) — set up the repo and ship a PR
