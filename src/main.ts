@@ -312,7 +312,9 @@ window.onload = function () {
     const li = evt.target as HTMLLIElement
     const listType = <ListType>li.dataset.listType || null
     const listStyle = <ListStyle>(<unknown>li.dataset.listStyle)
+    console.log('listType: ', listType, 'listStyle: ', listStyle)
     instance.command.executeList(listType, listStyle)
+    
   }
 
   // 4. | Table | Image | Hyperlink | Divider | Watermark | Code Block | Separator | Control | Checkbox | LaTeX | Date Picker

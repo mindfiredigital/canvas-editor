@@ -1,45 +1,109 @@
 ---
 sidebar_position: 1
 ---
-# How to contribute
 
-We deeply appreciate your interest in contributing to the Canvas Editor project. Your valuable contributions play a pivotal role in enhancing this project. Before you begin, please take a moment to review the following guidelines.
+# How to Contribute
+
+Thanks for your interest in **Canvas Editor**. Pull requests, issues, and design feedback are all welcome. This guide walks through the workflow used to keep contributions aligned with project goals and quality standards.
 
 ## Table of Contents
-- [Getting Started](#getting-started)
-- [Selecting an Issue or Feature](#selecting-an-issue-or-feature)
-- [Making Changes](#making-changes)
-- [Submitting a Pull Request](#submitting-a-pull-request)
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Setup Steps](#setup-steps)
+- [Branch Naming Convention](#branch-naming-convention)
+- [Development Workflow](#development-workflow)
+- [Commit & PR Process](#commit--pr-process)
+- [Code Review](#code-review)
 - [Code of Conduct](#code-of-conduct)
 - [Licensing](#licensing)
 
-## Getting Started
+## Overview
 
-1. Initiate the process by downloading the installer for the Long-Term Support (LTS) version of Node.js. This step also facilitates npm installation.
-2. Proceed by forking the react-canvas-editor repository.
-3. Execute npm install to install the required dependencies for this package.
-4. Gain insights into the document editor's functionality by running npm run storybook.
-## Selecting an Issue or Feature
+Canvas Editor is a canvas/SVG-based rich text editor maintained by Mindfire Digital. Contributions follow a structured workflow: fork → branch → implement → test → PR against `main`. Maintainers review submissions and merge once checks pass.
 
-Review the project's issue tracker and GitHub repository to identify open issues or features that align with your interests. If you can't pinpoint a specific task, do not hesitate to reach out to the project maintainers for guidance.
+## Prerequisites
 
-## Making Changes
-1. Establish a new branch within your forked repository, providing it with a descriptive name.
-2. Implement the desired feature or rectify the identified issue within your branch.
-3. Adhere to the project's coding style and conventions to ensure consistency.
-4. If applicable, create tests to comprehensively cover the functionality you're introducing or modifying.
+- **Git** and a **GitHub** account
+- **Node.js** LTS (`>=16.14`, the `engines` field requires `>=12.0.0` but LTS is recommended)
+- **npm** (bundled with Node.js) — this project uses npm scripts; `yarn` lockfile is also present
+- A modern browser for running the demo app
 
-## Submitting a Pull Request
-1. Initiate a pull request (PR) on the primary project repository.
-2. Furnish a clear and concise description of the changes within the PR.
-3. Elaborate on the issue you are addressing and outline the proposed solution.
-4. Be prepared to receive constructive feedback and engage in productive discussions.
-5. Adjust your code as necessary based on the feedback received.
+## Setup Steps
+
+1. **Fork and Clone**
+
+   Fork [`mindfiredigital/canvas-editor`](https://github.com/mindfiredigital/canvas-editor) on GitHub, then clone your fork:
+   ```bash
+   git clone https://github.com/your-username/canvas-editor.git
+   cd canvas-editor
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Run the Demo App**
+   ```bash
+   npm run dev
+   ```
+   Vite serves the editor at `http://localhost:3000` (or the next free port).
+
+4. **Run End-to-End Tests**
+   ```bash
+   npm run cypress:open     # interactive
+   npm run cypress:run      # headless
+   ```
+
+5. **Build the Library / App**
+   ```bash
+   npm run lib              # library build
+   npm run build            # demo app build
+   ```
+
+## Branch Naming Convention
+
+- Features: `feature/short-feature-description` (e.g. `feature/table-cell-merge`)
+- Fixes: `fix/short-bug-description` (e.g. `fix/bold-toggle-state`)
+- Docs: `docs/short-description`
+- Chore: `chore/short-description`
+
+## Development Workflow
+
+1. **Pick an issue** from the [issue tracker](https://github.com/mindfiredigital/canvas-editor/issues). Look for `good first issue` labels. For new features, open an issue first to align on scope.
+2. **Create a branch** from `main` using the naming convention above.
+3. **Implement the change** in `src/`. Keep changes focused; one logical change per PR.
+4. **Add or update Cypress tests** in `cypress/` when behavior changes.
+5. **Lint and type-check** before committing:
+   ```bash
+   npm run lint
+   npm run type:check
+   ```
+6. **Update documentation** in `docusaurus/docs/` when public API or behavior changes.
+
+## Commit & PR Process
+
+- Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification.
+- Examples:
+  - `feat(table): add cell merge support`
+  - `fix(toolbar): correct bold toggle state on selection`
+  - `docs(contrib): clarify cypress setup`
+- Base all PRs against the **`main`** branch.
+- PR description must include:
+  - **What** changed and **why**
+  - Linked issue (e.g. `Closes #123`)
+  - Screenshots or screen recordings for UI changes
+  - Test plan / verification steps
+- Push updates to the same branch; the PR refreshes automatically.
+
+## Code Review
+
+Maintainers review submissions for correctness, scope, style, and test coverage. Address review comments on the same branch — pushed commits reflect in the PR automatically. CI must be green before merge.
 
 ## Code of Conduct
-Kindly be aware that we uphold a Code of Conduct to sustain a positive and inclusive community. We urge you to thoroughly read and adhere to these guidelines during your participation in the project.
+
+Participation is governed by our [Code of Conduct](./code-of-conduce). Be respectful in issues, PRs, and reviews.
 
 ## Licensing
-By contributing to this project, you consent to the licensing terms chosen by the project. Ensure you review the project's licensing file for detailed information.
 
-We extend our gratitude for your contributions and eagerly anticipate your active involvement in the Canvas Editor project!
+Canvas Editor is released under the [MIT License](https://github.com/mindfiredigital/canvas-editor/blob/main/LICENSE). By submitting a contribution, you agree your work is licensed under the same terms.
