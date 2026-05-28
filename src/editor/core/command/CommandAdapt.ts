@@ -220,7 +220,13 @@ export class CommandAdapt {
     selection.forEach(el => {
       el.font = payload
     })
-    this.draw.render({ isSetCursor: false })
+    const applyRender = () => this.draw.render({ isSetCursor: false })
+    const fonts = (document as any)?.fonts
+    if (fonts?.load) {
+      fonts.load(`16px "${payload}"`).then(applyRender).catch(applyRender)
+    } else {
+      applyRender()
+    }
   }
 
   public size(payload: number) {

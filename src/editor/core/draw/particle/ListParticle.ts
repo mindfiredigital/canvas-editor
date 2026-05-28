@@ -12,9 +12,15 @@ export class ListParticle {
   private options: DeepRequired<IEditorOption>
 
   // 非递增样式直接返回默认值
-  private readonly UN_COUNT_STYLE_WIDTH = 20
+  // Bumped from 20 → 40 to give non-incremental markers (disc / square /
+  // checkbox / etc.) enough hanging-indent room for the wider glyphs and the
+  // 22px marker offset below. Override per list via IListElement.listIndentWidth.
+  private readonly UN_COUNT_STYLE_WIDTH = 40
   private readonly MEASURE_BASE_TEXT = '0'
   private readonly LIST_GAP = 10
+  // Horizontal nudge applied to the rendered list marker so it sits inside the
+  // hanging-indent column rather than at the row's left edge.
+  private readonly LIST_MARKER_OFFSET_X = 22
 
   constructor(draw: Draw) {
     this.options = draw.getOptions()
@@ -59,6 +65,10 @@ export class ListParticle {
   ): number {
     const { scale } = this.options
     const startElement = listElementList[0]
+    // Per-list override (set by importers that need a wider hanging-indent)
+    if (startElement.listIndentWidth) {
+      return startElement.listIndentWidth * scale
+    }
     // 非递增样式返回固定值
     if (
       startElement.listStyle &&
@@ -109,7 +119,7 @@ export class ListParticle {
     const { defaultFont, defaultSize, scale } = this.options
     ctx.save()
     ctx.font = `${defaultSize * scale * PX_PER_PT}px ${defaultFont}`
-    ctx.fillText(text, x, y)
+    ctx.fillText(text, x + this.LIST_MARKER_OFFSET_X, y)
     ctx.restore()
   }
 }

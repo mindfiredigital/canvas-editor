@@ -313,6 +313,7 @@ window.onload = function () {
     const listType = <ListType>li.dataset.listType || null
     const listStyle = <ListStyle>(<unknown>li.dataset.listStyle)
     instance.command.executeList(listType, listStyle)
+    
   }
 
   // 4. | Table | Image | Hyperlink | Divider | Watermark | Code Block | Separator | Control | Checkbox | LaTeX | Date Picker

@@ -1,134 +1,163 @@
-<h1 align="center">Canvas Editor</h1><br><br>
+<h1 align="center">Canvas Editor</h1>
+
 <p align="center">
-<a href="https://www.npmjs.com/package/@mindfiredigital/canvas-editor"><img src="https://img.shields.io/npm/v/@mindfiredigital/canvas-editor.svg?sanitize=true" alt="Version"></a>
-<a href="https://www.npmjs.com/package/@mindfiredigital/canvas-editor"><img src="https://img.shields.io/npm/l/@mindfiredigital/canvas-editor.svg?sanitize=true" alt="License"></a>
-<a href="https://www.npmjs.com/package/@mindfiredigital/canvas-editor"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs"></a>
+  <a href="https://www.npmjs.com/package/@mindfiredigital/canvas-editor"><img src="https://img.shields.io/npm/v/@mindfiredigital/canvas-editor.svg?sanitize=true" alt="Version"></a>
+  <a href="https://www.npmjs.com/package/@mindfiredigital/canvas-editor"><img src="https://img.shields.io/npm/dm/@mindfiredigital/canvas-editor.svg" alt="Downloads"></a>
+  <a href="https://www.npmjs.com/package/@mindfiredigital/canvas-editor"><img src="https://img.shields.io/npm/l/@mindfiredigital/canvas-editor.svg?sanitize=true" alt="License"></a>
+  <a href="https://github.com/mindfiredigital/canvas-editor/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome"></a>
 </p>
 
-<p align="center"> a rich text editor by canvas/svg</p>
+<p align="center">A rich text editor rendered with canvas/SVG.</p>
 
-**Canvas Editor** project uses and extends the [canvas-editor-plugin](https://github.com/Hufe921/canvas-editor-plugin), adding useful features like as table support, font size optimization, and the export of important DOM handlers. We would like to offer our heartfelt appreciation for their substantial contributions to the open-source community.
+**Canvas Editor** extends [canvas-editor-plugin](https://github.com/Hufe921/canvas-editor-plugin) with table support, font size improvements, and exported DOM handlers so you can build your own toolbar UI on top of it. Thanks to the upstream authors for their work.
 
-<br>
+---
 
 ## Table of Contents
+
 - [Features](#features)
 - [Installation](#installation)
-- [Usage](#usage)
-- [DOM Handlers](#dom-handlers)
+- [Quick Start](#quick-start)
+- [API](#api)
+  - [Exports](#exports)
+  - [DOM Handlers](#dom-handlers)
+- [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
 
-<br>
+## Features
 
-## Features <br>
-- **Event Handling:** DOM handlers were not exported so we helped exporting it so others can make use of it.
-- **New Feature:**
-     - **Tables**: A new feature has been introduced to enable the use of tables
-- **Improved Font Size:** The font size has been optimized to enhance readability and user experience.
-
-<br>
+- **Canvas / SVG rendering** — pixel-accurate layout, page-aware editing.
+- **Tables** — insert and edit tables inside the document.
+- **Exported DOM handlers** — drive the editor from any toolbar component (React, Vue, plain JS).
+- **Improved font sizing** — better readability over upstream defaults.
+- **TypeScript types** — full `.d.ts` shipped in the package.
 
 ## Installation
+
 ```bash
-npm i @mindfiredigital/canvas-editor
+npm install @mindfiredigital/canvas-editor
+# or
+yarn add @mindfiredigital/canvas-editor
+# or
+pnpm add @mindfiredigital/canvas-editor
 ```
 
-<br>
+Requires Node.js `>= 12` for build tooling.
 
-## Usage
+## Quick Start
 
-```javascript
-import {
-  DOMEventHandlers,
-  ListStyle,
-  ListType,
-  RowFlex,
-} from '@mindfiredigital/canvas-editor'
+```js
+import Editor, { EditorMode, PageMode } from '@mindfiredigital/canvas-editor'
 
-    <ButtonWrapper 
-        title="bold" 
-        handleClick={DOMEventHandlers.handleBold}>
-            <FormatBoldIcon />
-    </ButtonWrapper>
-    <ButtonWrapper
-        title="italic"
-        handleClick={DOMEventHandlers.handleItalic}>
-            <FormatItalicIcon />
-    </ButtonWrapper>
-    <ButtonWrapper
-        title="underline"
-        handleClick={DOMEventHandlers.handleUnderline}>
-        <FormatUnderlinedIcon />
-    </ButtonWrapper>
+const container = document.querySelector('.canvas-editor')
+
+const options = {
+  width: 816,
+  height: 1056,
+  mode: EditorMode.EDIT,
+  pageMode: PageMode.PAGING,
+  pageNumber: { format: '{pageNo}/{pageCount}' },
+  minSize: 1,
+  maxSize: 72,
+}
+
+const editor = new Editor(container, [], options)
 ```
 
-<br>
+Wire DOM handlers into your own toolbar:
 
-## DOM Handlers 
-- `handleUndo`: This handler is responsible for undoing the previous action performed in the editor.
+```jsx
+import { DOMEventHandlers } from '@mindfiredigital/canvas-editor'
 
-- `handleRedo`: The `handleRedo` handler allows you to redo an action that was previously undone.
+<ButtonWrapper title="bold"      handleClick={DOMEventHandlers.handleBold}><FormatBoldIcon /></ButtonWrapper>
+<ButtonWrapper title="italic"    handleClick={DOMEventHandlers.handleItalic}><FormatItalicIcon /></ButtonWrapper>
+<ButtonWrapper title="underline" handleClick={DOMEventHandlers.handleUnderline}><FormatUnderlinedIcon /></ButtonWrapper>
+```
 
-- `handleBold`: With the `handleBold` handler, you can apply or remove bold formatting to the selected text.
+## API
 
-- `handleItalic`: The `handleItalic` handler enables you to apply or remove italic formatting to the selected text.
+### Exports
 
-- `handleUnderline`: This handler allows you to apply or remove underline formatting to the selected text.
+Named exports from `@mindfiredigital/canvas-editor`:
 
-- `handleStrikeout`: The `handleStrikeout` handler enables you to apply or remove strikeout formatting to the selected text.
+| Symbol | Kind | Purpose |
+|---|---|---|
+| `Editor` (default) | class | Main editor constructor |
+| `DOMEventHandlers` | object | Toolbar action handlers (see below) |
+| `EditorMode` | enum | `EDIT` / `READONLY` / `FORM` / etc. |
+| `PageMode` | enum | `PAGING` / `CONTINUITY` |
+| `ElementType` | enum | Element kinds (`TEXT`, `IMAGE`, `TABLE`, …) |
+| `ControlType` | enum | Form control types |
+| `RowFlex` / `VerticalAlign` | enum | Alignment |
+| `ListType` / `ListStyle` | enum | List variants |
+| `BlockType`, `TitleLevel`, `NumberType` | enum | Block-level formatting |
+| `ImageDisplay`, `WordBreak`, `TableBorder` | enum | Visual options |
+| `PaperDirection`, `MaxHeightRatio` | enum | Page setup |
+| `Command`, `KeyMap` | enum | Commands & shortcuts |
+| `EditorZone`, `EditorComponent`, `EDITOR_COMPONENT` | enum/const | Zone identifiers |
 
-- `handleSuperscript`: With the `handleSuperscript` handler, you can apply or remove superscript formatting to the selected text.
+Type-only exports: `IElement`, `IEditorData`, `IEditorOption`, `IEditorResult`, `IContextMenuContext`, `IRegisterContextMenu`, `IWatermark`, `INavigateInfo`, `IBlock`, `ILang`, `ICatalog`, `ICatalogItem`, `IRangeStyle`.
 
-- `handleSubscript`: The `handleSubscript` handler allows you to apply or remove subscript formatting to the selected text.
+### DOM Handlers
 
-- `handleFontFamily`: This handler is used to change the font family of the selected text.
+All exposed through `DOMEventHandlers.*`.
 
-- `handleAlign`: The `handleAlign` handler allows you to align the selected text to the left, center, or right.
+| Handler | Description |
+|---|---|
+| `handleUndo` | Undo previous action |
+| `handleRedo` | Redo previously undone action |
+| `handleBold` | Toggle bold on selection |
+| `handleItalic` | Toggle italic on selection |
+| `handleUnderline` | Toggle underline on selection |
+| `handleStrikeout` | Toggle strikeout on selection |
+| `handleSuperscript` | Toggle superscript on selection |
+| `handleSubscript` | Toggle subscript on selection |
+| `handleFontFamily` | Change font family on selection |
+| `handleAlign` | Align left / center / right / justify |
+| `handleList` | Create bulleted or numbered list |
+| `setFontColor` | Set font color on selection |
+| `highlightText` | Toggle highlight on selection |
+| `setFont` | Set font of selection |
+| `setSize` | Set font size of selection |
+| `increaseFontSize` | Increment font size |
+| `decreaseFontSize` | Decrement font size |
+| `getContent` | Read editor content |
+| `setContent` | Replace editor content |
+| `createTable` | Insert a table |
+| `setTitle` | Set document title |
+| `getContentStyles` | Read computed content styles |
+| `setImage` | Insert an image |
+| `createHyperLink` | Insert a hyperlink |
+| `setHorizontalLine` | Insert a horizontal line |
+| `setPaperMargins` | Set paper margins |
+| `getSelectedText` | Read selected text |
+| `insertElement` | Insert a custom element |
 
-- `handleList`: With the `handleList` handler, you can create bulleted or numbered lists.
+## Documentation
 
-- `setFontColor`: This handler is responsible for changing the font color of the selected text.
+Full guides, references, and contribution docs live in the [Canvas Editor docs site](https://mindfiredigital.github.io/canvas-editor/).
 
-- `highlightText`: The `highlightText` handler enables you to apply or remove highlighting to the selected text.
-
-- `setFont`: With the `setFont` handler, you can change the font of the selected text.
-
-- `setSize`: This handler allows you to set the font size of the selected text.
-
-- `increaseFontSize`: The `increaseFontSize` handler increases the font size of the selected text.
-
-- `decreaseFontSize`: The `decreaseFontSize` handler decreases the font size of the selected text.
-
-- `getContent`: This handler retrieves the content of the editor.
-
-- `setContent`: The `setContent` handler sets the content of the editor.
-
-- `createTable`: With the `createTable` handler, you can insert a table into the editor.
-
-- `setTitle`: This handler sets the title of the editor.
-
-- `getContentStyles`: The `getContentStyles` handler retrieves the styles applied to the content of the editor.
-
-- `setImage`: With the `setImage` handler, you can insert an image into the editor.
-
-- `createHyperLink`: This handler allows you to create a hyperlink in the editor.
-
-- `setHorizontalLine`: The `setHorizontalLine` handler inserts a horizontal line into the editor.
-
-- `setPaperMargins`: This handler sets the paper margins of the editor.
-
-- `getSelectedText`: The `getSelectedText` handler retrieves the currently selected text in the editor.
-
-- `insertElement`: With the `insertElement` handler, you can insert a custom element into the editor.
-<br>
+- [What is Canvas Editor](https://mindfiredigital.github.io/canvas-editor/docs/what-is-canvas-editor)
+- [Installation](https://mindfiredigital.github.io/canvas-editor/docs/Get-started/Installation)
+- [Quick start](https://mindfiredigital.github.io/canvas-editor/docs/Get-started/quickstart)
+- [DOM events reference](https://mindfiredigital.github.io/canvas-editor/docs/references/dom-event)
 
 ## Contributing
-This project welcomes contributions and suggestions.
 
-<br>
+Pull requests and issues are welcome. See the [contributing guide](https://mindfiredigital.github.io/canvas-editor/docs/contributors/how-to-contribute) and [code of conduct](https://mindfiredigital.github.io/canvas-editor/docs/contributors/code-of-conduce) before opening a PR.
+
+Local development:
+
+```bash
+git clone https://github.com/mindfiredigital/canvas-editor.git
+cd canvas-editor
+npm install
+npm run dev          # launch demo app
+npm run lib          # build library bundle
+npm run cypress:open # run e2e tests
+```
 
 ## License
-Copyright (c) Mindfire Digital llp. All rights reserved.
 
-Licensed under the MIT license.
+[MIT](./LICENSE) © Mindfire Digital LLP.
