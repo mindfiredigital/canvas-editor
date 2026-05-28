@@ -28,14 +28,13 @@ window.onload = function () {
   const isApple =
     typeof navigator !== 'undefined' && /Mac OS X/.test(navigator.userAgent)
 
-  // 1. Initialize the editor
   const container = document.querySelector<HTMLDivElement>('.editor')!
   const instance = new Editor(
     container,
     {
       header: [
         {
-          value: "First People's Hospital",
+          value: `First People's Hospital`,
           size: 32,
           rowFlex: RowFlex.CENTER
         },
@@ -71,6 +70,16 @@ window.onload = function () {
       capture: true
     }
   )
+
+  // Keep editor selection/caret when clicking toolbar buttons.
+  // Buttons would otherwise steal focus on mousedown and collapse the selection.
+  const menuDom = document.querySelector<HTMLDivElement>('.menu')
+  menuDom?.addEventListener('mousedown', evt => {
+    const target = evt.target as HTMLElement
+    const tag = target.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return
+    evt.preventDefault()
+  })
 
   //TOOLBAR OPERATIONS
 
@@ -304,6 +313,7 @@ window.onload = function () {
     const listType = <ListType>li.dataset.listType || null
     const listStyle = <ListStyle>(<unknown>li.dataset.listStyle)
     instance.command.executeList(listType, listStyle)
+    
   }
 
   // 4. | Table | Image | Hyperlink | Divider | Watermark | Code Block | Separator | Control | Checkbox | LaTeX | Date Picker

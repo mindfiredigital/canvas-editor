@@ -1,5 +1,5 @@
 import { version } from '../../../../package.json'
-import { ZERO } from '../../dataset/constant/Common'
+import { PX_PER_PT, ZERO } from '../../dataset/constant/Common'
 import { RowFlex } from '../../dataset/enum/Row'
 import {
   IAppendElementListOption,
@@ -21,6 +21,7 @@ import {
   IElementStyle
 } from '../../interface/Element'
 import { IRow, IRowElement } from '../../interface/Row'
+import { ITd } from '../../interface/table/Td'
 import { deepClone, getUUID, nextTick } from '../../utils'
 import { Cursor } from '../cursor/Cursor'
 import { CanvasEvent } from '../event/CanvasEvent'
@@ -554,7 +555,7 @@ export class Draw {
     ...items: IElement[]
   ) {
     if (deleteCount > 0) {
-      // 当最后元素与开始元素列表信息不一致时：清除当前列表信息
+      // When the last element does not match the list information of the beginning element: Clear the current list information.
       const endIndex = start + deleteCount
       const endElement = elementList[endIndex]
       const endElementListId = endElement?.listId
@@ -854,9 +855,16 @@ export class Draw {
         row => row.elementList
       )
     }
+    // Coalesce any pagination fragments on a clone so saved data describes
+    // one logical table without mutating the live elementList — mutating
+    // would desync positionList (no recompute follows getValue), crashing
+    // the next mousedown at getPositionByXY → `elementList[j].type` when
+    // positionList still indexes the spliced-out continuation element.
+    const mainClone = deepClone(mainElementList)
+    this._mergeTableFragments(mainClone, true)
     const data: IEditorData = {
       header: zipElementList(this.getHeaderElementList()),
-      main: zipElementList(mainElementList),
+      main: zipElementList(mainClone),
       footer: zipElementList(this.getFooterElementList())
     }
     return {
@@ -955,7 +963,7 @@ export class Draw {
     const font = el.font || defaultFont
     const size = el.actualSize || el.size || defaultSize
     return `${el.italic ? 'italic ' : ''}${el.bold ? 'bold ' : ''}${
-      size * scale
+      size * scale * PX_PER_PT
     }px ${font}`
   }
 
@@ -965,7 +973,6 @@ export class Draw {
     const defaultBasicRowMarginHeight = this.getDefaultBasicRowMarginHeight()
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
-    // 计算列表偏移宽度
     const listStyleMap = this.listParticle.computeListStyle(ctx, elementList)
     const rowList: IRow[] = []
     if (elementList.length) {
@@ -978,39 +985,60 @@ export class Draw {
         rowFlex: elementList?.[1]?.rowFlex
       })
     }
-    // 列表位置
     let listId: string | undefined
     let listIndex = 0
+
     for (let i = 0; i < elementList.length; i++) {
-      const curRow: IRow = rowList[rowList.length - 1]
+      const currentRow: IRow = rowList[rowList.length - 1]
       const element = elementList[i]
+      // Word/Google-Docs line-spacing: total line height ≈ fontSize × NATURAL_LH × spacing
+      // where NATURAL_LH ≈ 1.2 is the font's natural line height. Per-side margin is
+      // half the leading beyond the glyph's bounding box (~elSize_px).
+      const lineSpacing = element.rowMargin || defaultRowMargin
+      const elSizePx =
+        (element.size || defaultSize) * PX_PER_PT * scale
+      const NATURAL_LINE_HEIGHT = 1.2
       const rowMargin =
-        defaultBasicRowMarginHeight * (element.rowMargin || defaultRowMargin)
+        (elSizePx * Math.max(NATURAL_LINE_HEIGHT * lineSpacing - 1, 0)) / 2
+      // Paragraph spacing only applies to paragraph-start markers (ZERO).
+      // "Before" pads above the paragraph start; "after" pads below the
+      // paragraph end (the ZERO marker that begins the NEXT paragraph
+      // carries the previous paragraph's "after" via the preceding break,
+      // so we apply both on the ZERO marker for simplicity).
+      const isParaStart = element.value === ZERO
+      const paragraphSpacingBefore = isParaStart
+        ? (element.paragraphSpacingBefore || 0) * scale
+        : 0
+      const paragraphSpacingAfter = isParaStart
+        ? (element.paragraphSpacingAfter || 0) * scale
+        : 0
       const metrics: IElementMetrics = {
         width: 0,
         height: 0,
         boundingBoxAscent: 0,
         boundingBoxDescent: 0
       }
-      // 实际可用宽度
-      const offsetX = element.listId ? listStyleMap.get(element.listId) || 0 : 0
-      const availableWidth = innerWidth - offsetX
+      const listOffsetX = element.listId
+        ? listStyleMap.get(element.listId) || 0
+        : 0
+      const availableRowWidth = innerWidth - listOffsetX
+
       if (
         element.type === ElementType.IMAGE ||
         element.type === ElementType.LATEX
       ) {
         const elementWidth = element.width! * scale
         const elementHeight = element.height! * scale
-        // 图片超出尺寸后自适应
-        const curRowWidth =
-          element.imgDisplay === ImageDisplay.INLINE ? 0 : curRow.width
-        if (curRowWidth + elementWidth > availableWidth) {
-          // 计算剩余大小
-          const surplusWidth = availableWidth - curRowWidth
+        const baseWidth =
+          element.imgDisplay === ImageDisplay.INLINE ? 0 : currentRow.width
+        const exceedsRowWidth = baseWidth + elementWidth > availableRowWidth
+
+        if (exceedsRowWidth) {
+          const surplusWidth = availableRowWidth - baseWidth
           const adaptiveWidth =
             surplusWidth > 0
               ? surplusWidth
-              : Math.min(elementWidth, availableWidth)
+              : Math.min(elementWidth, availableRowWidth)
           element.width = adaptiveWidth
           element.height = (elementHeight * adaptiveWidth) / elementWidth
           metrics.width = element.width
@@ -1024,76 +1052,93 @@ export class Draw {
         metrics.boundingBoxAscent = 0
       } else if (element.type === ElementType.TABLE) {
         const tdGap = tdPadding * 2
-        // 计算表格行列
-        this.tableParticle.computeRowColInfo(element)
-        // 计算表格内元素信息
         const trList = element.trList!
-        for (let t = 0; t < trList.length; t++) {
-          const tr = trList[t]
-          for (let d = 0; d < tr.tdList.length; d++) {
-            const td = tr.tdList[d]
-            const rowList = this.computeRowList(
+
+        // Reset every tr to its baseline height before re-deriving from
+        // current td content. Without this, tr.height inherits the prior
+        // render's inflated value; the shrink path requires every column
+        // sibling to have slack and silently no-ops when even one doesn't
+        // — fine for paste (single render, single layout) but accumulates
+        // gaps under repeated typing renders, especially on rows below
+        // the cell that just split to the next page.
+        for (let trIndex = 0; trIndex < trList.length; trIndex++) {
+          const tr = trList[trIndex]
+          const baseline = tr.minHeight || 0
+          tr.height = baseline
+          for (let tdIndex = 0; tdIndex < tr.tdList.length; tdIndex++) {
+            tr.tdList[tdIndex].height = baseline
+          }
+        }
+        this.tableParticle.computeRowColInfo(element)
+
+        for (let trIndex = 0; trIndex < trList.length; trIndex++) {
+          const tr = trList[trIndex]
+          for (let tdIndex = 0; tdIndex < tr.tdList.length; tdIndex++) {
+            const td = tr.tdList[tdIndex]
+            const tdRowList = this.computeRowList(
               (td.width! - tdGap) * scale,
               td.value
             )
-            const rowHeight = rowList.reduce((pre, cur) => pre + cur.height, 0)
-            td.rowList = rowList
-            // 移除缩放导致的行高变化-渲染时会进行缩放调整
+            const rowHeight = tdRowList.reduce(
+              (pre, cur) => pre + cur.height,
+              0
+            )
+            td.rowList = tdRowList
             const curTdHeight = (rowHeight + tdGap) / scale
-            // 内容高度大于当前单元格高度需增加
+
             if (td.height! < curTdHeight) {
               const extraHeight = curTdHeight - td.height!
-              const changeTr = trList[t + td.rowspan - 1]
-              changeTr.height += extraHeight
-              changeTr.tdList.forEach(changeTd => {
-                changeTd.height! += extraHeight
+              const targetTr = trList[trIndex + td.rowspan - 1]
+              targetTr.height += extraHeight
+              targetTr.tdList.forEach(targetTd => {
+                targetTd.height! += extraHeight
               })
             }
-            // 当前单元格最小高度及真实高度（包含跨列）
+
             let curTdMinHeight = 0
             let curTdRealHeight = 0
-            let i = 0
-            while (i < td.rowspan) {
-              const curTr = trList[i + t]
+            let spanIndex = 0
+            while (spanIndex < td.rowspan) {
+              const curTr = trList[spanIndex + trIndex]
               curTdMinHeight += curTr.minHeight!
               curTdRealHeight += curTr.height!
-              i++
+              spanIndex++
             }
             td.realMinHeight = curTdMinHeight
             td.realHeight = curTdRealHeight
             td.mainHeight = curTdHeight
           }
         }
-        // 单元格高度大于实际内容高度需减少
-        const reduceTrList = this.tableParticle.getTrListGroupByCol(trList)
-        for (let t = 0; t < reduceTrList.length; t++) {
-          const tr = reduceTrList[t]
+
+        const trListGroupedByCol =
+          this.tableParticle.getTrListGroupByCol(trList)
+        for (let trIndex = 0; trIndex < trListGroupedByCol.length; trIndex++) {
+          const tr = trListGroupedByCol[trIndex]
           let reduceHeight = -1
-          for (let d = 0; d < tr.tdList.length; d++) {
-            const td = tr.tdList[d]
+
+          for (let tdIndex = 0; tdIndex < tr.tdList.length; tdIndex++) {
+            const td = tr.tdList[tdIndex]
             const curTdRealHeight = td.realHeight!
             const curTdHeight = td.mainHeight!
             const curTdMinHeight = td.realMinHeight!
-            // 获取最大可减少高度
-            const curReduceHeight =
+            const candidateReduceHeight =
               curTdHeight < curTdMinHeight
                 ? curTdRealHeight - curTdMinHeight
                 : curTdRealHeight - curTdHeight
-            if (!~reduceHeight || curReduceHeight < reduceHeight) {
-              reduceHeight = curReduceHeight
+            if (!~reduceHeight || candidateReduceHeight < reduceHeight) {
+              reduceHeight = candidateReduceHeight
             }
           }
-          if (reduceHeight > 0) {
-            const changeTr = trList[t]
-            changeTr.height -= reduceHeight
-            changeTr.tdList.forEach(changeTd => {
-              changeTd.height! -= reduceHeight
-            })
-          }
+
+          if (reduceHeight <= 0) continue
+          const targetTr = trList[trIndex]
+          targetTr.height -= reduceHeight
+          targetTr.tdList.forEach(targetTd => {
+            targetTd.height! -= reduceHeight
+          })
         }
-        // 需要重新计算表格内值
+
         this.tableParticle.computeRowColInfo(element)
-        // 计算出表格高度
         const tableHeight = trList.reduce((pre, cur) => pre + cur.height, 0)
         const tableWidth = element.colgroup!.reduce(
           (pre, cur) => pre + cur.width,
@@ -1101,90 +1146,371 @@ export class Draw {
         )
         element.width = tableWidth
         element.height = tableHeight
-        const elementWidth = tableWidth * scale
-        const elementHeight = tableHeight * scale
-        metrics.width = elementWidth
-        metrics.height = elementHeight
-        metrics.boundingBoxDescent = elementHeight
+        metrics.width = tableWidth * scale
+        metrics.height = tableHeight * scale
+        metrics.boundingBoxDescent = metrics.height
         metrics.boundingBoxAscent = 0
-        // 表格分页处理(拆分表格)
-        const height = this.getHeight()
+
+        const pageHeight = this.getHeight()
         const marginHeight = this.getMainOuterHeight()
-        let curPagePreHeight = marginHeight
-        for (let r = 0; r < rowList.length; r++) {
-          const row = rowList[r]
+        let accumulatedPageHeight = marginHeight
+        for (let rowIndex = 0; rowIndex < rowList.length; rowIndex++) {
+          const row = rowList[rowIndex]
+          const isPageBreakBefore = rowList[rowIndex - 1]?.isPageBreak
           if (
-            row.height + curPagePreHeight > height ||
-            rowList[r - 1]?.isPageBreak
+            row.height + accumulatedPageHeight > pageHeight ||
+            isPageBreakBefore
           ) {
-            curPagePreHeight = marginHeight + row.height
+            accumulatedPageHeight = marginHeight + row.height
           } else {
-            curPagePreHeight += row.height
+            accumulatedPageHeight += row.height
           }
         }
-        // 表格高度超过页面高度
-        const rowMarginHeight = rowMargin * 2 * scale
-        if (curPagePreHeight + rowMarginHeight + elementHeight > height) {
-          const trList = element.trList!
-          // 计算需要移除的行数
+
+        const tableRowMarginHeight = rowMargin * 2 * scale
+        // Multi-page table fragments (cloneElement created by a previous
+        // split iteration in this same compute pass) start on a fresh
+        // page. The accumulator built from the outer rowList still holds
+        // the previous fragment's near-full page-1 usage, which would
+        // shrink this fragment's budget to ~0 and break the split. If
+        // even the first tr can't fit on the current page's remainder,
+        // this table will start on the next page — reset the accumulator
+        // to that page's top so split math reflects a full-page budget.
+        const firstTrScaledHeight = (trList[0]?.height || 0) * scale
+        const tableStartsOnNewPage =
+          accumulatedPageHeight +
+            tableRowMarginHeight +
+            firstTrScaledHeight >
+          pageHeight
+        if (tableStartsOnNewPage) {
+          accumulatedPageHeight = marginHeight
+        }
+        const tableExceedsPage =
+          accumulatedPageHeight + tableRowMarginHeight + metrics.height >
+          pageHeight
+
+        // Clear stale page-break stamps from the previous render pass so that
+        // cells which moved off a page boundary don't keep their old separator.
+        // Row 0 top-stamp skipped: when a continuation cloneElement was inserted
+        // at i+1 by a prior split this pass, its row-0 top stamp is still valid.
+        // _mergeTableFragments already coalesced last-render's fragments above.
+        element.trList?.forEach((tr, trIdx) => {
+          tr.tdList.forEach(td => {
+            if (trIdx > 0) {
+              if (td._pageBreakStampedTop) {
+                td.borderBgTop = '#ffffff'
+                td.borderWidthTop = undefined
+                td._pageBreakStampedTop = false
+              }
+              td.isPageBreakBorderTop = false
+            }
+            if (td._pageBreakStampedBottom) {
+              td.borderBgBottom = '#ffffff'
+              td.borderWidthBottom = undefined
+              td._pageBreakStampedBottom = false
+            }
+            td.isPageBreakBorderBottom = false
+          })
+        })
+
+        // --- table split (only at top level — nested td.value never paginates) ---
+        const isTopLevel = elementList === this.elementList
+        if (tableExceedsPage && isTopLevel) {
           let deleteStart = 0
           let deleteCount = 0
-          let preTrHeight = 0
-          if (trList.length > 1) {
-            for (let r = 0; r < trList.length; r++) {
-              const tr = trList[r]
+          let accumulatedTrHeight = 0
+
+          // No `trList.length > 1` guard: a single-row continuation
+          // fragment (the common page2→3, page3→4, … case) still needs
+          // to be split when its sole row exceeds the remaining budget.
+          {
+            for (let rowIndex = 0; rowIndex < trList.length; rowIndex++) {
+              const tr = trList[rowIndex]
               const trHeight = tr.height * scale
-              if (
-                curPagePreHeight + rowMarginHeight + preTrHeight + trHeight >
-                height
-              ) {
-                // 是否跨列
-                if (element.colgroup?.length !== tr.tdList.length) {
-                  deleteCount = 0
+              const trExceedsPage =
+                accumulatedPageHeight +
+                  tableRowMarginHeight +
+                  accumulatedTrHeight +
+                  trHeight >
+                pageHeight
+
+              if (trExceedsPage) {
+                const isSpannedRow =
+                  element.colgroup?.length !== tr.tdList.length
+                if (isSpannedRow) deleteCount = 0
+                else {
+                  // ← include the overflowing row itself in the split
+                  deleteStart = rowIndex
+                  deleteCount = trList.length - deleteStart
                 }
                 break
-              } else {
-                deleteStart = r + 1
-                deleteCount = trList.length - deleteStart
-                preTrHeight += trHeight
               }
+              deleteStart = rowIndex + 1
+              deleteCount = trList.length - deleteStart
+              accumulatedTrHeight += trHeight
             }
           }
+
           if (deleteCount) {
             const cloneTrList = trList.splice(deleteStart, deleteCount)
-            const cloneTrHeight = cloneTrList.reduce(
-              (pre, cur) => pre + cur.height,
-              0
+            const overflowTr = cloneTrList[0]
+            // Budget for splitting row = page - prior-page rows -
+            // table outer margin - earlier table rows on this page
+            const availableScaledHeight = Math.max(
+              0,
+              pageHeight -
+                accumulatedPageHeight -
+                tableRowMarginHeight -
+                accumulatedTrHeight
             )
-            element.height -= cloneTrHeight
-            metrics.height -= cloneTrHeight
-            metrics.boundingBoxDescent -= cloneTrHeight
-            // 追加拆分表格
-            const cloneElement = deepClone(element)
-            cloneElement.trList = cloneTrList
-            cloneElement.id = getUUID()
-            this.spliceElementList(elementList, i + 1, 0, cloneElement)
-            // 换页的是当前行则改变上下文
-            const positionContext = this.position.getPositionContext()
-            if (
-              positionContext.isTable &&
-              positionContext.trIndex === deleteStart
-            ) {
-              positionContext.index! += 1
-              positionContext.trIndex = 0
-              this.position.setPositionContext(positionContext)
+            const [currentPageTdList, nextPageTdList] =
+              this.splitTrListByPageHeight(
+                overflowTr.tdList,
+                availableScaledHeight,
+                scale
+              )
+            const hasOverflow = nextPageTdList.some(
+              td => (td.rowList?.length || 0) > 0
+            )
+            const onlyOneTrSplitting =
+              cloneTrList.length === 1 && !hasOverflow
+            if (onlyOneTrSplitting) {
+              // No real overflow content — put the row back unchanged
+              trList.push(overflowTr)
+              const newTableHeight = trList.reduce(
+                (pre, cur) => pre + cur.height,
+                0
+              )
+              element.height = newTableHeight
+              metrics.height = newTableHeight * scale
+              metrics.boundingBoxDescent = metrics.height
+              this.tableParticle.computeRowColInfo(element)
+            } else if (currentPageTdList.every(td => !td.rowList?.length)) {
+              // Nothing fits on current page. If splicing the overflow rows
+              // would leave element.trList empty (deleteStart === 0), undo
+              // the splice and let parent rowList pagination move the whole
+              // table to the next page — a table element must never have
+              // an empty trList or the renderer crashes.
+              if (trList.length === 0) {
+                trList.splice(deleteStart, 0, ...cloneTrList)
+                const restoredTableHeight = trList.reduce(
+                  (pre, cur) => pre + cur.height,
+                  0
+                )
+                element.height = restoredTableHeight
+                metrics.height = restoredTableHeight * scale
+                metrics.boundingBoxDescent = metrics.height
+                this.tableParticle.computeRowColInfo(element)
+              } else {
+              // At least one row stays on current page — fall back to
+              // whole-row move for the overflowing trs.
+              const cloneElement = deepClone(element)
+              cloneElement.trList = cloneTrList
+              cloneElement.height = cloneTrList.reduce(
+                (pre, cur) => pre + cur.height,
+                0
+              )
+              cloneElement.id = element.id
+              const newTableHeight = trList.reduce(
+                (pre, cur) => pre + cur.height,
+                0
+              )
+              element.height = newTableHeight
+              metrics.height = newTableHeight * scale
+              metrics.boundingBoxDescent = metrics.height
+              // Page-break border continuity (whole-row move): paint table's
+              // outer bottom border on the last row of the current-page
+              // fragment, and outer top border on the first row of the
+              // continuation fragment.
+              if (element.pageBreakBorderBottom && trList.length) {
+                trList[trList.length - 1].tdList.forEach(td => {
+                  if (!td.borderBgBottom || td.borderBgBottom === '#ffffff') {
+                    td.borderBgBottom = element.pageBreakBorderBottom
+                    if (element.pageBreakBorderBottomWidth !== undefined) {
+                      td.borderWidthBottom = element.pageBreakBorderBottomWidth
+                    }
+                    td._pageBreakStampedBottom = true
+                  }
+                  td.isPageBreakBorderBottom = true
+                })
+              }
+              if (cloneElement.pageBreakBorderTop && cloneElement.trList?.length) {
+                cloneElement.trList[0].tdList.forEach(td => {
+                  if (!td.borderBgTop || td.borderBgTop === '#ffffff') {
+                    td.borderBgTop = cloneElement.pageBreakBorderTop
+                    if (cloneElement.pageBreakBorderTopWidth !== undefined) {
+                      td.borderWidthTop = cloneElement.pageBreakBorderTopWidth
+                    }
+                    td._pageBreakStampedTop = true
+                  }
+                  td.isPageBreakBorderTop = true
+                })
+              }
+              this.tableParticle.computeRowColInfo(element)
+              this.tableParticle.computeRowColInfo(cloneElement)
+              this.spliceElementList(elementList, i + 1, 0, cloneElement)
+              const positionContext = this.position.getPositionContext()
+              if (
+                positionContext.isTable &&
+                positionContext.trIndex! >= deleteStart
+              ) {
+                positionContext.index! += 1
+                positionContext.trIndex! -= deleteStart
+                this.position.setPositionContext(positionContext)
+              }
+              }
+            } else {
+              // Equalize all td heights within each split row so siblings
+              // of the overflowing cell don't render at stale bloated
+              // heights inherited from the original (pre-split) row.
+              const overflowTrHeight = Math.max(
+                overflowTr.minHeight || 0,
+                ...nextPageTdList.map(td => td.height || 0)
+              )
+              const splitTrHeight = Math.max(
+                overflowTr.minHeight || 0,
+                ...currentPageTdList.map(td => td.height || 0)
+              )
+              nextPageTdList.forEach(td => {
+                td.height = overflowTrHeight
+                td.mainHeight = overflowTrHeight
+                td.realHeight = overflowTrHeight
+                td.realMinHeight = overflowTrHeight
+              })
+              currentPageTdList.forEach(td => {
+                td.height = splitTrHeight
+                td.mainHeight = splitTrHeight
+                td.realHeight = splitTrHeight
+                td.realMinHeight = splitTrHeight
+              })
+
+              // Page-break border continuity: when a row is sliced across a
+              // page boundary, draw the table's outer top border at the
+              // continuation cells (page top) and the outer bottom border at
+              // the current-page cells. Matches Google Docs, which paints
+              // the table's tblBorders.top/bottom on every page the table
+              // spans, even when individual cell tcBorders are nil.
+              if (element.pageBreakBorderTop) {
+                nextPageTdList.forEach(td => {
+                  if (!td.borderBgTop || td.borderBgTop === '#ffffff') {
+                    td.borderBgTop = element.pageBreakBorderTop
+                    if (element.pageBreakBorderTopWidth !== undefined) {
+                      td.borderWidthTop = element.pageBreakBorderTopWidth
+                    }
+                    td._pageBreakStampedTop = true
+                  }
+                  td.isPageBreakBorderTop = true
+                })
+              }
+              if (element.pageBreakBorderBottom) {
+                currentPageTdList.forEach(td => {
+                  if (!td.borderBgBottom || td.borderBgBottom === '#ffffff') {
+                    td.borderBgBottom = element.pageBreakBorderBottom
+                    if (element.pageBreakBorderBottomWidth !== undefined) {
+                      td.borderWidthBottom = element.pageBreakBorderBottomWidth
+                    }
+                    td._pageBreakStampedBottom = true
+                  }
+                  td.isPageBreakBorderBottom = true
+                })
+              }
+
+              // Stamp a stable logical-row id on the row being split (once
+              // — preserved across every further fragmentation). Every
+              // fragment of this logical row will carry the same
+              // originalRowId so merge can pair them across any number of
+              // page boundaries without depending on mutable .id values.
+              if (!overflowTr.originalRowId) {
+                overflowTr.originalRowId = overflowTr.id
+              }
+              // Continuation row on next page keeps overflow content
+              overflowTr.tdList = nextPageTdList
+              overflowTr.height = overflowTrHeight
+              // Current-page portion of split row — push back into trList
+              const splitTr = deepClone(overflowTr)
+              splitTr.id = getUUID()
+              splitTr.tdList = currentPageTdList.map(td => ({
+                ...td,
+                id: getUUID()
+              }))
+              splitTr.height = splitTrHeight
+              splitTr.originalRowId = overflowTr.originalRowId
+              trList.push(splitTr)
+
+              const newTableHeight = trList.reduce(
+                (pre, cur) => pre + cur.height,
+                0
+              )
+              element.height = newTableHeight
+              metrics.height = newTableHeight * scale
+              metrics.boundingBoxDescent = metrics.height
+
+              const cloneElement = deepClone(element)
+              cloneElement.trList = cloneTrList
+              cloneElement.height = cloneTrList.reduce(
+                (pre, cur) => pre + cur.height,
+                0
+              )
+              cloneElement.id = element.id
+              this.tableParticle.computeRowColInfo(element)
+              this.tableParticle.computeRowColInfo(cloneElement)
+              this.spliceElementList(elementList, i + 1, 0, cloneElement)
+
+              // ---- Cursor / range migration ----
+              // When the cursor's row is the one being fragmented, decide
+              // whether the cursor stays on current page (in splitTr) or
+              // moves to the continuation (cloneElement.trList[0]) based
+              // on its value-index inside the split td.
+              const positionContext = this.position.getPositionContext()
+              const range = this.range.getRange()
+              if (
+                positionContext.isTable &&
+                positionContext.trIndex !== undefined
+              ) {
+                if (positionContext.trIndex === deleteStart) {
+                  const cursorTdIdx = positionContext.tdIndex
+                  const N = range.startIndex
+                  const endN = range.endIndex
+                  const currentTd =
+                    cursorTdIdx !== undefined
+                      ? currentPageTdList[cursorTdIdx]
+                      : undefined
+                  const currentLen = currentTd?.value?.length ?? 0
+                  if (cursorTdIdx !== undefined && N >= 0 && N < currentLen) {
+                    // Cursor falls in current-page portion — stays in
+                    // element's last (splitTr) row
+                    positionContext.trIndex = trList.length - 1
+                    this.position.setPositionContext(positionContext)
+                  } else {
+                    // Cursor in overflow portion — migrate to cloneElement
+                    positionContext.index! += 1
+                    positionContext.trIndex = 0
+                    this.position.setPositionContext(positionContext)
+                    if (cursorTdIdx !== undefined && N >= 0) {
+                      // ZERO-prefix in nextTd.value shifts indices by +1
+                      const newStart = Math.max(0, N - currentLen + 1)
+                      const newEnd = Math.max(0, endN - currentLen + 1)
+                      this.range.setRange(newStart, newEnd)
+                    }
+                  }
+                } else if (positionContext.trIndex > deleteStart) {
+                  positionContext.index! += 1
+                  positionContext.trIndex -= deleteStart
+                  this.position.setPositionContext(positionContext)
+                }
+              }
             }
           }
         }
       } else if (element.type === ElementType.SEPARATOR) {
-        element.width = availableWidth
-        metrics.width = availableWidth
+        element.width = availableRowWidth
+        metrics.width = availableRowWidth
         metrics.height = defaultSize
         metrics.boundingBoxAscent = -rowMargin
         metrics.boundingBoxDescent = -rowMargin
       } else if (element.type === ElementType.PAGE_BREAK) {
-        element.width = availableWidth
-        metrics.width = availableWidth
+        element.width = availableRowWidth
+        metrics.width = availableRowWidth
         metrics.height = defaultSize
       } else if (
         element.type === ElementType.CHECKBOX ||
@@ -1197,91 +1523,95 @@ export class Draw {
         metrics.height = height * scale
       } else if (element.type === ElementType.TAB) {
         metrics.width = defaultTabWidth * scale
-        metrics.height = defaultSize * scale
+        metrics.height = defaultSize * scale * PX_PER_PT
         metrics.boundingBoxDescent = 0
         metrics.boundingBoxAscent = metrics.height
       } else if (element.type === ElementType.BLOCK) {
-        if (!element.width) {
-          metrics.width = availableWidth
-        } else {
-          const elementWidth = element.width * scale
-          metrics.width = Math.min(elementWidth, availableWidth)
-        }
+        const elementWidth = element.width
+          ? element.width * scale
+          : availableRowWidth
+        metrics.width = Math.min(elementWidth, availableRowWidth)
         metrics.height = element.height! * scale
         metrics.boundingBoxDescent = metrics.height
         metrics.boundingBoxAscent = 0
       } else {
-        // 设置上下标真实字体尺寸
         const size = element.size || defaultSize
-        if (
+        const isSuperOrSubscript =
           element.type === ElementType.SUPERSCRIPT ||
           element.type === ElementType.SUBSCRIPT
-        ) {
+        if (isSuperOrSubscript) {
           element.actualSize = Math.ceil(size * 0.6)
         }
-        metrics.height = (element.actualSize || size) * scale
+        metrics.height = (element.actualSize || size) * scale * PX_PER_PT
         ctx.font = this._getFont(element)
         const fontMetrics = this.textParticle.measureText(ctx, element)
         metrics.width = fontMetrics.width * scale
         if (element.letterSpacing) {
           metrics.width += element.letterSpacing * scale
         }
-        metrics.boundingBoxAscent =
-          (element.value === ZERO
-            ? defaultSize
-            : fontMetrics.actualBoundingBoxAscent) * scale
-        metrics.boundingBoxDescent =
-          fontMetrics.actualBoundingBoxDescent * scale
+        // Use font-size-derived ascent/descent uniformly so row heights are
+        // consistent across wrapped lines, hard-break (Enter) lines, and
+        // imported-doc paragraphs. Glyph-bounding-box metrics (varies per
+        // character) caused uneven line spacing — descender-less rows came
+        // out shorter than ZERO-marker / descender rows in the same paragraph.
+        const fontPx = (element.actualSize || size) * scale * PX_PER_PT
+        const ASCENT_RATIO = 0.8
+        const DESCENT_RATIO = 0.2
+        metrics.boundingBoxAscent = fontPx * ASCENT_RATIO
+        metrics.boundingBoxDescent = fontPx * DESCENT_RATIO
         if (element.type === ElementType.SUPERSCRIPT) {
           metrics.boundingBoxAscent += metrics.height / 2
         } else if (element.type === ElementType.SUBSCRIPT) {
           metrics.boundingBoxDescent += metrics.height / 2
         }
       }
-      const ascent =
+
+      const isImageOrLatexBlock =
         (element.imgDisplay !== ImageDisplay.INLINE &&
           element.type === ElementType.IMAGE) ||
         element.type === ElementType.LATEX
-          ? metrics.height + rowMargin
-          : metrics.boundingBoxAscent + rowMargin
+      const ascent = isImageOrLatexBlock
+        ? metrics.height + rowMargin
+        : metrics.boundingBoxAscent + rowMargin
       const height =
         rowMargin +
+        paragraphSpacingBefore +
         metrics.boundingBoxAscent +
         metrics.boundingBoxDescent +
-        rowMargin
+        rowMargin +
+        paragraphSpacingAfter
+
       const rowElement: IRowElement = Object.assign(element, {
         metrics,
         style: this._getFont(element, scale)
       })
-      // 超过限定宽度
+
       const preElement = elementList[i - 1]
       let nextElement = elementList[i + 1]
-      // 累计行宽 + 当前元素宽度 + 排版宽度(英文单词整体宽度 + 后面标点符号宽度)
-      let curRowWidth = curRow.width + metrics.width
-      if (this.options.wordBreak === WordBreak.BREAK_WORD) {
-        if (
-          (!preElement?.type || preElement?.type === ElementType.TEXT) &&
-          (!element.type || element.type === ElementType.TEXT)
-        ) {
-          // 英文单词
-          const word = `${preElement?.value || ''}${element.value}`
-          if (WORD_LIKE_REG.test(word)) {
-            const { width, endElement } = this.textParticle.measureWord(
-              ctx,
-              elementList,
-              i
-            )
-            curRowWidth += width
-            nextElement = endElement
-          }
-          // 标点符号
-          curRowWidth += this.textParticle.measurePunctuationWidth(
+      let curRowWidth = currentRow.width + metrics.width
+
+      const isBreakWord = this.options.wordBreak === WordBreak.BREAK_WORD
+      const isBothText =
+        (!preElement?.type || preElement?.type === ElementType.TEXT) &&
+        (!element.type || element.type === ElementType.TEXT)
+
+      if (isBreakWord && isBothText) {
+        const adjacentWord = `${preElement?.value || ''}${element.value}`
+        if (WORD_LIKE_REG.test(adjacentWord)) {
+          const { width, endElement } = this.textParticle.measureWord(
             ctx,
-            nextElement
+            elementList,
+            i
           )
+          curRowWidth += width
+          nextElement = endElement
         }
+        curRowWidth += this.textParticle.measurePunctuationWidth(
+          ctx,
+          nextElement
+        )
       }
-      // 列表信息
+
       if (element.listId) {
         if (element.listId !== listId) {
           listIndex = 0
@@ -1290,39 +1620,45 @@ export class Draw {
         }
       }
       listId = element.listId
-      if (
+
+      const mustBreakRow =
         element.type === ElementType.TABLE ||
         preElement?.type === ElementType.TABLE ||
         preElement?.type === ElementType.BLOCK ||
         element.type === ElementType.BLOCK ||
         preElement?.imgDisplay === ImageDisplay.INLINE ||
         element.imgDisplay === ImageDisplay.INLINE ||
-        curRowWidth > availableWidth ||
+        curRowWidth > availableRowWidth ||
         (i !== 0 && element.value === ZERO) ||
         preElement?.listId !== element.listId
-      ) {
-        // 减小行元素前第一行空行行高
-        if (
-          curRow.startIndex === 0 &&
-          curRow.elementList.length === 1 &&
+
+      if (mustBreakRow) {
+        const isLeadingEmptyRow =
+          currentRow.startIndex === 0 &&
+          currentRow.elementList.length === 1 &&
           (INLINE_ELEMENT_TYPE.includes(element.type!) || element.listId)
-        ) {
-          curRow.height = defaultBasicRowMarginHeight
+        if (isLeadingEmptyRow) {
+          currentRow.height = defaultBasicRowMarginHeight
         }
-        // 两端对齐
-        if (
+
+        const shouldJustify =
           preElement?.rowFlex === RowFlex.ALIGNMENT &&
-          curRowWidth > availableWidth
-        ) {
+          curRowWidth > availableRowWidth
+        if (shouldJustify) {
           const gap =
-            (availableWidth - curRow.width) / curRow.elementList.length
-          for (let e = 0; e < curRow.elementList.length; e++) {
-            const el = curRow.elementList[e]
-            el.metrics.width += gap
+            (availableRowWidth - currentRow.width) /
+            currentRow.elementList.length
+          for (
+            let elIndex = 0;
+            elIndex < currentRow.elementList.length;
+            elIndex++
+          ) {
+            currentRow.elementList[elIndex].metrics.width += gap
           }
-          curRow.width = availableWidth
+          currentRow.width = availableRowWidth
         }
-        const row: IRow = {
+
+        const newRow: IRow = {
           width: metrics.width,
           height,
           startIndex: i,
@@ -1332,20 +1668,21 @@ export class Draw {
           isPageBreak: element.type === ElementType.PAGE_BREAK
         }
         if (element.listId) {
-          row.isList = true
-          row.offsetX = listStyleMap.get(element.listId!)
-          row.listIndex = listIndex
+          newRow.isList = true
+          newRow.offsetX = listStyleMap.get(element.listId!)
+          newRow.listIndex = listIndex
         }
-        rowList.push(row)
+        rowList.push(newRow)
       } else {
-        curRow.width += metrics.width
-        if (curRow.height < height) {
-          curRow.height = height
-          curRow.ascent = ascent
+        currentRow.width += metrics.width
+        if (currentRow.height < height) {
+          currentRow.height = height
+          currentRow.ascent = ascent
         }
-        curRow.elementList.push(rowElement)
+        currentRow.elementList.push(rowElement)
       }
     }
+
     return rowList
   }
 
@@ -1402,8 +1739,7 @@ export class Draw {
     const { rowList, pageNo, elementList, positionList, startIndex, zone } =
       payload
     // const { scale, tdPadding } = this.options
-    const { scale, tdPadding, defaultBasicRowMarginHeight, defaultRowMargin } =
-      this.options
+    const { scale, tdPadding, defaultRowMargin } = this.options
     const { isCrossRowCol, tableId } = this.range.getRange()
     let index = startIndex
     for (let i = 0; i < rowList.length; i++) {
@@ -1500,10 +1836,11 @@ export class Draw {
         }
         // 下划线记录
         if (element.underline) {
+          const lineSpacing = element.rowMargin || defaultRowMargin
+          const elSizePx =
+            (element.size || this.options.defaultSize) * PX_PER_PT * scale
           const rowMargin =
-            defaultBasicRowMarginHeight *
-            (element.rowMargin || defaultRowMargin) *
-            scale
+            (elSizePx * Math.max(1.2 * lineSpacing - 1, 0)) / 2
           this.underline.recordFillInfo(
             ctx,
             x,
@@ -1731,40 +2068,55 @@ export class Draw {
     let { curIndex } = payload || {}
     const innerWidth = this.getInnerWidth()
     const isPagingMode = this.getIsPagingMode()
-    // 计算文档信息
+    // Calculate Document Information
     if (isCompute) {
       if (isPagingMode) {
-        // 页眉信息
+        // Header Information
         if (!header.disabled) {
           this.header.compute()
         }
-        // 页脚信息
+        // Footer Information
         if (!footer.disabled) {
           this.footer.compute()
         }
       }
-      // 行信息
+      // Coalesce continuation fragments left by prior render so pagination
+      // is recomputed from a clean model on every keystroke.
+      this._mergeTableFragments(this.elementList)
+      // Row Information
       this.rowList = this.computeRowList(innerWidth, this.elementList)
-      // 页面信息
+      // Page Information
       this.pageRowList = this._computePageList()
-      // 位置信息
+      // Position Information
       this.position.computePositionList()
-      // 搜索信息
+      // Search Information
       const searchKeyword = this.search.getSearchKeyword()
       if (searchKeyword) {
         this.search.compute(searchKeyword)
       }
     }
-    // 清除光标等副作用
+    // Re-sync curIndex with the range after compute: table pagination may
+    // have migrated the caret to a continuation cell, in which case the
+    // original curIndex passed by the input handler is stale and would
+    // point past the new (shorter) cell's positionList → cursorPosition
+    // would be set to null, silently swallowing the next keystroke.
+    const postComputeRange = this.range.getRange()
+    if (
+      postComputeRange.startIndex >= 0 &&
+      postComputeRange.startIndex === postComputeRange.endIndex
+    ) {
+      curIndex = postComputeRange.startIndex
+    }
+    // Clear cursor and other side effects
     this.imageObserver.clearAll()
     this.cursor.recoveryCursor()
-    // 创建纸张
+    // Create pages
     for (let i = 0; i < this.pageRowList.length; i++) {
       if (!this.pageList[i]) {
         this._createPage(i)
       }
     }
-    // 移除多余页
+    // Remove Redundant Pages
     const curPageCount = this.pageRowList.length
     const prePageCount = this.pageList.length
     if (prePageCount > curPageCount) {
@@ -1774,15 +2126,15 @@ export class Draw {
         .splice(curPageCount, deleteCount)
         .forEach(page => page.remove())
     }
-    // 绘制元素
-    // 连续页因为有高度的变化会导致canvas渲染空白，需立即渲染，否则会出现闪动
+    // Drawing Elements
+    // Due to height variations in consecutive pages, the canvas may render blank; immediate rendering is required to prevent flickering.
     if (isLazy && isPagingMode) {
       this._lazyRender()
     } else {
       this._immediateRender()
     }
     const positionContext = this.position.getPositionContext()
-    // 光标重绘
+    // Cursor Redraw
     if (isSetCursor) {
       const positionList = this.position.getPositionList()
       if (positionContext.isTable) {
@@ -1802,7 +2154,7 @@ export class Draw {
       }
       this.cursor.drawCursor()
     }
-    // 历史记录用于undo、redo
+    // The history log is used for undo and redo operations.
     if (isSubmitHistory) {
       const self = this
       const oldElementList = deepClone(this.elementList)
@@ -1823,24 +2175,24 @@ export class Draw {
         self.render({ curIndex, isSubmitHistory: false })
       })
     }
-    // 信息变动回调
+    // Information Change Callback
     nextTick(() => {
-      // 表格工具重新渲染
+      // Table Tool Redraw
       if (isCompute && !this.isReadonly() && positionContext.isTable) {
         this.tableTool.render()
       }
-      // 页眉指示器重新渲染
+      // Header Indicator Redraw
       if (isCompute && !this.zone.isMainActive()) {
         this.zone.drawZoneIndicator()
       }
-      // 页面尺寸改变
+      // Page Size Change
       if (this.listener.pageSizeChange) {
         this.listener.pageSizeChange(this.pageRowList.length)
       }
       if (this.eventBus.isSubscribe('pageSizeChange')) {
         this.eventBus.emit('pageSizeChange', this.pageRowList.length)
       }
-      // 文档内容改变
+      // Document Content Change
       if (isSubmitHistory && !isInit) {
         if (this.listener.contentChange) {
           this.listener.contentChange()
@@ -1858,5 +2210,253 @@ export class Draw {
     this.globalEvent.removeEvent()
     this.scrollObserver.removeEvent()
     this.selectionObserver.removeEvent()
+  }
+
+  /**
+   * Coalesce table fragments produced by cross-page row splitting back into
+   * the single logical table. Runs before every compute pass so split is
+   * idempotent and re-pagination uses fresh, up-to-date content.
+   *
+   * Two consecutive elements are considered fragments of the same logical
+   * table when both are TABLE-typed and share the same `id`. The last row
+   * of the first fragment and the first row of the second fragment are the
+   * two halves of a single physical row that was split mid-content; their
+   * per-td `value` arrays are concatenated back, preserving cell ids.
+   *
+   * Cursor (positionContext) and selection (range) are migrated so the
+   * caret stays exactly where the user left it.
+   */
+  public mergeTableFragments(elementList: IElement[], skipStateMutation = false) {
+    return this._mergeTableFragments(elementList, skipStateMutation)
+  }
+
+  private _mergeTableFragments(elementList: IElement[], skipStateMutation = false) {
+    let i = 0
+    while (i < elementList.length - 1) {
+      const cur = elementList[i]
+      const next = elementList[i + 1]
+      const isMergeable =
+        cur.type === ElementType.TABLE &&
+        next.type === ElementType.TABLE &&
+        !!cur.id &&
+        cur.id === next.id &&
+        !!cur.trList?.length &&
+        !!next.trList?.length
+      if (!isMergeable) {
+        i++
+        continue
+      }
+
+      const curTrList = cur.trList!
+      const nextTrList = next.trList!
+      const lastTrIndex = curTrList.length - 1
+      const lastTr = curTrList[lastTrIndex]
+      const firstTr = nextTrList[0]
+      const sameColCount = lastTr.tdList.length === firstTr.tdList.length
+
+      // Fragment-pair test: both rows carry the same originalRowId iff
+      // they're two halves of the same logical row that was mid-row
+      // split across a page boundary — those need td.value concatenation.
+      // Whole-row moves leave originalRowId unset; those rows are
+      // independent logical rows that must NOT be concatenated, but they
+      // STILL need to be reunited into one table element so the outer
+      // flow doesn't draw rowMargin between them (which renders as a
+      // visible gap on the same page).
+      const isFragmentPair =
+        !!lastTr.originalRowId &&
+        lastTr.originalRowId === firstTr.originalRowId
+
+      const positionContext = this.position.getPositionContext()
+      const range = this.range.getRange()
+      const cursorTdValueOffsets: Record<number, number> = {}
+
+      if (isFragmentPair && sameColCount) {
+        for (let t = 0; t < firstTr.tdList.length; t++) {
+          const lastTd = lastTr.tdList[t]
+          const firstTd = firstTr.tdList[t]
+          const lastValue = lastTd.value || []
+          const firstValue = firstTd.value || []
+          // Avoid duplicating the cell-start ZERO marker when concatenating
+          const skipFirstZero =
+            lastValue.length > 0 && firstValue[0]?.value === ZERO
+          const offset = lastValue.length - (skipFirstZero ? 1 : 0)
+          firstTd.value = [
+            ...lastValue,
+            ...firstValue.slice(skipFirstZero ? 1 : 0)
+          ]
+          // Invalidate cached layout so it's recomputed against full content
+          firstTd.rowList = undefined
+          firstTd.positionList = undefined
+          cursorTdValueOffsets[t] = offset
+        }
+        // Replace the split row with the merged continuation row, then
+        // append the rest of next's rows
+        cur.trList = [
+          ...curTrList.slice(0, -1),
+          firstTr,
+          ...nextTrList.slice(1)
+        ]
+        // Retain firstTr.originalRowId: in a multi-page split chain
+        // (page1 → page2 → page3 → …), firstTr is itself an intermediate
+        // fragment that still needs to merge with the next element via
+        // originalRowId. Once the terminal merge completes, the surviving
+        // originalRowId stays — letting any future re-split of the same
+        // logical row reuse the same identity.
+      } else {
+        // Whole-row move (or column-structure mismatch): rows are
+        // independent, just append. No td.value concatenation.
+        cur.trList = [...curTrList, ...nextTrList]
+      }
+
+      cur.height = cur.trList.reduce((p, c) => p + (c.height || 0), 0)
+      this.tableParticle.computeRowColInfo(cur)
+
+      // Adjust caret / position context — skip for clone-based merges
+      // (e.g. getValue) where live position/range state must not change.
+      if (!skipStateMutation && positionContext.isTable && positionContext.index !== undefined) {
+        if (positionContext.index === i + 1) {
+          // Caret was inside `next` — migrate to `cur`
+          positionContext.index = i
+          const trIndex = positionContext.trIndex ?? 0
+          if (isFragmentPair && sameColCount) {
+            // Row 0 of next merged into cur's last row; rows >0 follow it
+            positionContext.trIndex =
+              trIndex === 0 ? lastTrIndex : lastTrIndex + trIndex
+            if (
+              trIndex === 0 &&
+              positionContext.tdIndex !== undefined &&
+              cursorTdValueOffsets[positionContext.tdIndex] > 0 &&
+              range.startIndex >= 0
+            ) {
+              const off = cursorTdValueOffsets[positionContext.tdIndex]
+              this.range.setRange(
+                range.startIndex + off,
+                range.endIndex + off
+              )
+            }
+          } else {
+            // Whole-row append: next's rows now sit after cur's rows
+            positionContext.trIndex = curTrList.length + trIndex
+          }
+          this.position.setPositionContext(positionContext)
+        } else if (positionContext.index > i + 1) {
+          // Element index shifts down because `next` was removed
+          positionContext.index -= 1
+          this.position.setPositionContext(positionContext)
+        }
+      }
+
+      elementList.splice(i + 1, 1)
+      // Stay at i — there may be more fragments with the same id queued up
+    }
+  }
+
+  private splitTrListByPageHeight(
+    tdList: ITd[],
+    availableScaledHeight: number,
+    scale: number
+  ): [ITd[], ITd[]] {
+    const currentPageTdList: ITd[] = []
+    const nextPageTdList: ITd[] = []
+
+    for (const td of tdList) {
+      const currentTd = deepClone(td)
+      const nextTd = deepClone(td)
+
+      const currentRowList: IRow[] = []
+      const overflowRowList: IRow[] = []
+      let accumulatedHeight = 0
+      let hasOverflowed = false
+
+      for (const row of td.rowList || []) {
+        const rowHeight = row.height || 0
+        if (
+          !hasOverflowed &&
+          accumulatedHeight + rowHeight <= availableScaledHeight
+        ) {
+          currentRowList.push(row)
+          accumulatedHeight += rowHeight
+        } else {
+          hasOverflowed = true
+          overflowRowList.push(row)
+        }
+      }
+
+      const tdGap = this.options.tdPadding * 2
+      const toUnscaledTdHeight = (rows: IRow[]) => {
+        const scaledRowsHeight = rows.reduce(
+          (pre, cur) => pre + (cur.height || 0),
+          0
+        )
+        return scaledRowsHeight / scale + tdGap
+      }
+      // Baseline height for empty cells: one empty line (not the bloated
+      // original td.height, which inherits sibling cell growth)
+      const emptyRowHeight =
+        (td.rowList?.[0]?.height || 0) / scale + tdGap
+
+      // Current page td
+      currentTd.rowList = this.updateRowList(currentRowList)
+      currentTd.value = this.rebuildValueFromRowList(currentTd.rowList)
+      currentTd.height = currentRowList.length
+        ? toUnscaledTdHeight(currentRowList)
+        : emptyRowHeight
+      currentTd.mainHeight = currentTd.height
+      currentTd.realHeight = currentTd.height
+      currentTd.realMinHeight = currentTd.height
+
+      // Next page td (continuation)
+      nextTd.rowList = this.updateRowList(overflowRowList)
+      if (overflowRowList.length) {
+        const overflowElements = this.rebuildValueFromRowList(nextTd.rowList)
+        // Prepend a spacer ZERO so a small visual gap separates the
+        // page-break top border line from the continuation content.
+        // The marker also keeps td.value well-formed for the merge dedupe.
+        const spacer: IElement = { value: ZERO, size: this.options.defaultSize }
+        nextTd.value =
+          overflowElements[0]?.value === ZERO
+            ? [spacer, ...overflowElements.slice(1)]
+            : [spacer, ...overflowElements]
+      } else {
+        nextTd.value = [{ value: ZERO }]
+      }
+      nextTd.height = overflowRowList.length
+        ? toUnscaledTdHeight(overflowRowList)
+        : emptyRowHeight
+      nextTd.mainHeight = nextTd.height
+      nextTd.realHeight = nextTd.height
+      nextTd.realMinHeight = nextTd.height
+
+      currentPageTdList.push(currentTd)
+      nextPageTdList.push(nextTd)
+    }
+
+    return [currentPageTdList, nextPageTdList]
+  }
+
+  private updateRowList(rowList: IRow[]): IRow[] {
+    let startIndex = 0
+    return rowList.map(row => {
+      const updated: IRow = {
+        ...row,
+        startIndex,
+        isPageBreak: false
+      }
+      startIndex += row.elementList?.length || 0
+      return updated
+    })
+  }
+
+  private rebuildValueFromRowList(rowList: IRow[]): IElement[] {
+    return rowList.flatMap(row =>
+      (row.elementList || []).map(element => {
+        // Strip per-render fields (metrics/style) — recomputed on next render
+        const { metrics, style, ...rest } = element as IRowElement & {
+          metrics?: unknown
+          style?: unknown
+        }
+        return rest as IElement
+      })
+    )
   }
 }

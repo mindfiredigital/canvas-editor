@@ -1,60 +1,42 @@
-name: Deployment Workflow
-
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
 jobs:
-  build:
-    name: '@mindfiredigital/canvas-editor'
+  ci:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: read
-    steps:
-      - name: 'Checkout repository'
-        uses: actions/checkout@v2
+      issues: write
+      pull-requests: write
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
-      - name: 'Install dependencies'
-        run: npm install
+      - run: npm ci
 
-      - name: 'Build application'
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build
         run: npm run lib
-      
-      - name: 'Restore changes in json'
-        run: |
-          git restore package-lock.json
-      
-      - name: 'Set Git user name and email'
-        run: |
-          git config --local user.email "github-actions@github.com"
-          git config --local user.name "GitHub Actions"
 
-  create-github-release:
-    name: Create Github release document and publish to node
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    needs: build
-    steps: 
-      - name: Checkout code 
-        uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-
-      - name: Semantic Release and npm release
-        run: |
-          npm ci
-          npx semantic-release@22.0.0
+      - name: Semantic Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npx semantic-release@22.0.0
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

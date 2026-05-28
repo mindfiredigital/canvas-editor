@@ -188,6 +188,20 @@ export class TableParticle {
       isDrawFullBorder: isExternalBorderType,
       trList: element.trList
     })
+
+    // Google-Docs-style page-break separator at the top: if first row was
+    // marked as a continuation (split from a previous page), overlay the
+    // table-top border as a thick-left + thin-right line spanning page
+    // content width.
+    const firstTr = element.trList?.[0]
+    if (firstTr?.tdList.some(td => td.isPageBreakBorderTop)) {
+      const color = firstTr.tdList.find(td => td.isPageBreakBorderTop)
+        ?.borderBgTop
+      if (color) {
+        this._drawPageBreakSeparator(ctx, Math.round(startY), color)
+      }
+    }
+
     // if (!isExternalBorderType) {
     // 渲染表格
     for (let t = 0; t < trList.length; t++) {
@@ -218,25 +232,130 @@ export class TableParticle {
         ctx.stroke()
         ctx.closePath()
         ctx.beginPath()
-        ctx.strokeStyle = td.borderBgBottom
-          ? td.borderBgBottom
-          : trNext?.borderBgTop
-          ? trNext?.borderBgTop
-          : 'black'
-        ctx.lineWidth = td.borderWidthBottom
-          ? td.borderWidthBottom
-          : trNext?.borderWidthTop
-          ? trNext?.borderWidthTop
-          : 1
+        // Pick the heavier of this cell's bottom border and the next
+        // row's same-column top border. DOCX rows often declare a thin
+        // bottom and the row below declares a thick top (or vice-versa);
+        // drawing only the current cell's bottom collapses inter-row
+        // dividers to whichever value was authored first, even when the
+        // other side is thicker. Choosing the heavier value keeps thick
+        // section dividers intact while still letting page-end show the
+        // row's own (thin) bottom line when there is no next row.
+        const bottomCandidates = [
+          { color: td.borderBgBottom, width: td.borderWidthBottom },
+          { color: trNext?.borderBgTop, width: trNext?.borderWidthTop }
+        ].filter(b => !!b.color || b.width != null)
+        const chosen = bottomCandidates.length
+          ? bottomCandidates.reduce((a, b) =>
+              (b.width ?? 0) > (a.width ?? 0) ? b : a
+            )
+          : { color: 'black', width: 1 }
+        ctx.strokeStyle = chosen.color || 'black'
+        ctx.lineWidth = chosen.width || 1
 
         ctx.moveTo(x, y + height)
         ctx.lineTo(x - width, y + height) //border-bottom
         ctx.stroke()
         ctx.closePath()
+
+//         type Border = {
+//   color?: string
+//   width?: number
+// }
+
+// const bottomCandidates: Border[] = [
+//   { color: td.borderBgBottom, width: td.borderWidthBottom },
+//   { color: trNext?.borderBgTop, width: trNext?.borderWidthTop }
+// ].filter(b => !!b.color)
+
+// const chosen: Border = bottomCandidates.length
+//   ? bottomCandidates.reduce((a, b) =>
+//       (b.width ?? 0) > (a.width ?? 0) ? b : a
+//     )
+//   : { color: 'black', width: 1 }
+
+// const separatorY = y + height
+
+// // content boundaries (align with text margins, not page edges)
+// const margins = this.draw.getMargins()
+// const pageLeft = margins[3]
+// const pageRight = this.options.width - margins[1]
+
+// // Google Docs–like left thick cap
+// // const thickPartLength = 85
+// const thickPartLength = Math.min(90, (pageRight - pageLeft) * 0.12)
+
+// ctx.strokeStyle = chosen.color || 'red'
+
+
+// // LEFT THICK PART (3px, longer)
+// ctx.beginPath()
+// ctx.lineWidth = 3
+
+// ctx.moveTo(pageLeft, separatorY)
+// ctx.lineTo(pageLeft + thickPartLength, separatorY)
+
+// ctx.stroke()
+
+
+// // RIGHT THIN PART (1px)
+// ctx.beginPath()
+// ctx.lineWidth = 1
+
+// // start exactly where thick part ended
+// ctx.moveTo(pageLeft + thickPartLength, separatorY)
+// ctx.lineTo(pageRight, separatorY)
+
+// ctx.stroke()
+
+// ctx.closePath()
         ctx.translate(-0.5, -0.5)
       }
     }
+    // Google-Docs-style page-break separator at the bottom: if last row was
+    // marked as the end-of-page chunk, overlay the table-bottom border as a
+    // thick-left + thin-right line spanning page content width.
+    const lastTr = trList[trList.length - 1]
+    if (lastTr?.tdList.some(td => td.isPageBreakBorderBottom)) {
+      const color = lastTr.tdList.find(td => td.isPageBreakBorderBottom)
+        ?.borderBgBottom
+      if (color) {
+        const bottomY = Math.round(
+          (lastTr.tdList[0].y! + lastTr.tdList[0].height!) * this.options.scale +
+            startY
+        )
+        this._drawPageBreakSeparator(ctx, bottomY, color)
+      }
+    }
     // }
+    ctx.restore()
+  }
+
+  private _drawPageBreakSeparator(
+    ctx: CanvasRenderingContext2D,
+    y: number,
+    color: string
+  ) {
+    const margins = this.draw.getMargins()
+    const pageLeft = margins[3]
+    const pageRight = this.options.width - margins[1]
+    const thickPartLength = Math.min(150, (pageRight - pageLeft) * 0.20)
+
+    ctx.save()
+    ctx.strokeStyle = color
+    // LEFT THICK PART (3px)
+    ctx.beginPath()
+    ctx.lineWidth = 3
+    ctx.moveTo(pageLeft, y)
+    ctx.lineTo(pageLeft + thickPartLength, y)
+    ctx.stroke()
+    ctx.closePath()
+    // RIGHT THIN PART (1px)
+    ctx.beginPath()
+    ctx.lineWidth = 1
+    ctx.moveTo(pageLeft + thickPartLength, y)
+    ctx.lineTo(pageRight, y)
+    ctx.stroke()
+    ctx.closePath()
     ctx.restore()
   }
 
